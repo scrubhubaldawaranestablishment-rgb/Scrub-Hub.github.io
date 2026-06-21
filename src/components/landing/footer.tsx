@@ -16,8 +16,8 @@ export function Footer() {
               </div>
             </div>
             <p className="text-white/50 text-sm leading-relaxed max-w-md">
-              AI Opportunity Intelligence Platform for Saudi businesses.
-              Discover hidden sales opportunities, potential customers, and growth paths.
+              منصة ذكاء نمو B2B للسوق السعودي.
+              حوّل وصف نشاطك إلى pipeline صفقات — مع قيمة تقديرية وخطوة بيع واضحة.
             </p>
           </div>
 
@@ -27,7 +27,7 @@ export function Footer() {
               <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
               <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><Link href="/signup" className="hover:text-white transition-colors">Start Free</Link></li>
+              <li><Link href="/signup" className="hover:text-white transition-colors">٣ فرص مجاناً</Link></li>
             </ul>
           </div>
 

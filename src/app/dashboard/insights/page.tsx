@@ -17,9 +17,9 @@ export default async function InsightsPage() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#0F1115]">رؤى السوق</h1>
+        <h1 className="text-2xl font-bold text-[#0F1115]">إشارات السوق</h1>
         <p className="text-[#0F1115]/50 mt-1">
-          Market intelligence powered by Taramiz AI
+          اتجاهات قطاعك في السعودية — مع إجراء عملي
         </p>
       </div>
 

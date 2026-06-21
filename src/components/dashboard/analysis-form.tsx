@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Sparkles } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function AnalysisForm() {
@@ -15,7 +15,7 @@ export function AnalysisForm() {
   const [form, setForm] = useState({
     whatTheySell: "",
     targetMarket: "",
-    location: "Riyadh, Saudi Arabia",
+    location: "الرياض، المملكة العربية السعودية",
   });
 
   async function handleAnalyze(e: React.FormEvent) {
@@ -41,19 +41,22 @@ export function AnalysisForm() {
   }
 
   return (
-    <Card className="border-[#0E3B2E]/10">
+    <Card className="border-[#0E3B2E]/10 shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-[#C8A96B]" />
-          محرك تحليل الفرص
+        <CardTitle className="flex items-center gap-2 text-[#0F1115]">
+          <Search className="h-5 w-5 text-[#C8A96B]" />
+          مسح السوق — ابحث عن صفقاتك القادمة
         </CardTitle>
+        <CardDescription>
+          النتيجة: فرص مرتبة بقيمة الإيراد + مشترين محتملين + موقفك التنافسي
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleAnalyze} className="space-y-4">
           <div className="space-y-2">
             <Label>ماذا تبيع؟ *</Label>
             <Textarea
-              placeholder="مثال: خدمات غسيل تجاري للفنادق والمستشفيات"
+              placeholder="مثال: عقود صيانة دورية للمباني التجارية والمجمعات الصناعية"
               value={form.whatTheySell}
               onChange={(e) => setForm({ ...form, whatTheySell: e.target.value })}
               required
@@ -61,16 +64,16 @@ export function AnalysisForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label>السوق المستهدف *</Label>
+            <Label>من هو مشتريك المثالي؟ *</Label>
             <Input
-              placeholder="مثال: الفنادق، المستشفيات، المرافق التجارية"
+              placeholder="مثال: مطوري عقارات، سلاسل فنادق، مستشفيات خاصة"
               value={form.targetMarket}
               onChange={(e) => setForm({ ...form, targetMarket: e.target.value })}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label>الموقع *</Label>
+            <Label>المنطقة الجغرافية *</Label>
             <Input
               placeholder="مثال: الرياض، المملكة العربية السعودية"
               value={form.location}
@@ -78,19 +81,22 @@ export function AnalysisForm() {
               required
             />
           </div>
-          <Button type="submit" className="w-full gap-2" disabled={loading}>
+          <Button type="submit" className="w-full gap-2 h-12" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                جاري التحليل...
+                جاري مسح السوق...
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4" />
-                ابدأ التحليل
+                <Search className="h-4 w-4" />
+                ابدأ المسح — ٣ فرص مجاناً
               </>
             )}
           </Button>
+          <p className="text-xs text-center text-[#0F1115]/40">
+            يستغرق أقل من دقيقتين · بدون بطاقة ائتمان
+          </p>
         </form>
       </CardContent>
     </Card>

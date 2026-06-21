@@ -18,9 +18,9 @@ export default async function ProspectsPage() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#0F1115]">العملاء المحتملون</h1>
+        <h1 className="text-2xl font-bold text-[#0F1115]">مشترون محتملون</h1>
         <p className="text-[#0F1115]/50 mt-1">
-          {prospects?.length ?? 0} prospects identified by Taramiz Intelligence
+          {prospects?.length ?? 0} جهة B2B — مع سبب واضح لِمَ تشتري منك
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export default async function ProspectsPage() {
               </div>
               <Progress value={prospect.fit_score} className="h-1.5" />
               <div className="rounded-lg bg-[#F8F7F3] p-3">
-                <p className="text-xs font-medium text-[#0E3B2E] mb-1">لماذا يتطابقون</p>
+                <p className="text-xs font-medium text-[#0E3B2E] mb-1">سبب التطابق</p>
                 <p className="text-sm text-[#0F1115]/70">{prospect.why_they_match}</p>
               </div>
             </CardContent>

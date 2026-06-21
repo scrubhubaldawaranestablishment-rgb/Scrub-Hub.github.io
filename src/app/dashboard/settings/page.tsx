@@ -34,8 +34,8 @@ export default function SettingsPage() {
   return (
     <div className="p-6 lg:p-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#0F1115]">الإعدادات</h1>
-        <p className="text-[#0F1115]/50 mt-1">Account and subscription settings</p>
+        <h1 className="text-2xl font-bold text-[#0F1115]">الإعدادات والاشتراك</h1>
+        <p className="text-[#0F1115]/50 mt-1">اختر الخطة حسب حجم pipeline الذي تحتاجه</p>
       </div>
 
       <div className="space-y-6">
@@ -64,7 +64,10 @@ export default function SettingsPage() {
         </Card>
 
         <div>
-          <h2 className="text-lg font-semibold mb-4">ترقية الخطة</h2>
+          <h2 className="text-lg font-semibold mb-2">ترقية pipeline</h2>
+          <p className="text-sm text-[#0F1115]/50 mb-4">
+            صفقة B2B واحدة تغطي اشتراكك لأشهر — اختر حسب حجم فريق المبيعات
+          </p>
           <div className="grid md:grid-cols-3 gap-4">
             {PRICING_PLANS.map((plan) => (
               <Card

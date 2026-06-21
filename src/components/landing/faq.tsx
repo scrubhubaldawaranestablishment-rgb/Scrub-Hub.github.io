@@ -1,76 +1,65 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-
 const faqs = [
   {
-    q_ar: "هل تراميز نظام CRM؟",
-    q_en: "Is Taramiz a CRM?",
-    a_ar: "لا. تراميز ليس CRM ولا قاعدة بيانات leads. نحن منصة ذكاء فرص تستخدم الذكاء الاصطناعي لاكتشاف فرص مبيعات مخفية وعملاء محتملين وتحليل المنافسين.",
-    a_en: "No. Taramiz is not a CRM or lead database. We are an AI Opportunity Intelligence Platform.",
+    q_ar: "هل تراميز CRM أو قاعدة بيانات leads؟",
+    q_en: "Is Taramiz a CRM or lead database?",
+    a_ar: "لا. تراميز لا يخزّن contacts ولا يدير pipeline. نحن نُنتج لك قائمة فرص وصفقات محتملة — مع قيمة تقديرية وخطوة بيع — لتبدأ المتابعة فوراً.",
+    a_en: "No. Taramiz produces ranked deal opportunities with estimated value — you execute the sales follow-up.",
   },
   {
-    q_ar: "كيف يعمل التحليل المجاني؟",
-    q_en: "How does the free analysis work?",
-    a_ar: "تحصل على 3 فرص مجانية مع كل تحليل. يمكنك رؤية 127 فرصة إضافية مقفلة — قم بالترقية لفتحها جميعاً.",
-    a_en: "You get 3 free opportunities per analysis. 127 additional opportunities are locked until you upgrade.",
+    q_ar: "ماذا أحصل عليه في التحليل المجاني؟",
+    q_en: "What do I get in the free analysis?",
+    a_ar: "٣ فرص كاملة: العنوان، الوصف، قيمة الصفقة المتوقعة، احتمال الإغلاق، وخطوتك التالية. باقي التقرير (127 فرصة) متاح في خطة النمو.",
+    a_en: "3 full opportunities with deal value and next sales step. The remaining 127 are available on Growth.",
   },
   {
-    q_ar: "هل البيانات آمنة؟",
+    q_ar: "هل بياناتي آمنة؟",
     q_en: "Is my data secure?",
-    a_ar: "نعم. نستخدم تشفير على مستوى البنوك مع استضافة بيانات في المملكة العربية السعودية.",
-    a_en: "Yes. We use bank-grade encryption with Saudi data residency.",
+    a_ar: "نعم. استضافة في المملكة، تشفير كامل، ولا نشارك بياناتك مع أي طرف ثالث.",
+    a_en: "Yes. Saudi-hosted, fully encrypted, no third-party data sharing.",
   },
   {
-    q_ar: "ما هي الصناعات المدعومة؟",
-    q_en: "What industries are supported?",
-    a_ar: "ندعم جميع قطاعات B2B في السعودية: الغسيل، العيادات، الفنادق، المطاعم، اللوجستيات، الصيانة، الأمن، الموارد البشرية، والمزيد.",
-    a_en: "All B2B sectors in Saudi Arabia including laundry, clinics, hotels, restaurants, logistics, and more.",
+    q_ar: "ما القطاعات التي تغطونها؟",
+    q_en: "Which sectors do you cover?",
+    a_ar: "كل B2B في السعودية: مرافق، ضيافة، صحة، لوجستيات، أمن، موارد بشرية، مطاعم، وغيرها.",
+    a_en: "All Saudi B2B sectors including facilities, hospitality, healthcare, logistics, and more.",
   },
   {
-    q_ar: "هل يمكنني إلغاء الاشتراك؟",
-    q_en: "Can I cancel anytime?",
-    a_ar: "نعم. يمكنك إلغاء اشتراكك في أي وقت بدون رسوم إضافية.",
-    a_en: "Yes. Cancel anytime with no additional fees.",
+    q_ar: "هل يمكنني الإلغاء؟",
+    q_en: "Can I cancel?",
+    a_ar: "نعم — شهرياً، بدون عقد، بدون رسوم إلغاء.",
+    a_en: "Yes — monthly, no contract, no cancellation fees.",
   },
 ];
 
 export function FAQ() {
   return (
-    <section id="faq" className="py-24 bg-[#F8F7F3]">
+    <section id="faq" className="py-28 bg-[#F8F7F3]">
       <div className="mx-auto max-w-3xl px-6">
         <div className="text-center mb-12">
-          <span className="text-sm font-medium text-[#C8A96B] uppercase tracking-wider">
+          <span className="text-xs font-semibold text-[#C8A96B] uppercase tracking-[0.2em]">
             FAQ
           </span>
-          <h2 className="mt-3 text-3xl font-bold text-[#0F1115]">
-            الأسئلة الشائعة
+          <h2 className="mt-4 text-3xl font-bold text-[#0F1115]">
+            أسئلة شائعة
           </h2>
         </div>
 
-        <Accordion type="single" collapsible className="space-y-2">
+        <div className="space-y-3">
           {faqs.map((faq, i) => (
-            <AccordionItem
+            <details
               key={i}
-              value={`item-${i}`}
-              className="rounded-xl border border-[#0E3B2E]/10 bg-white px-6"
+              className="group rounded-xl border border-[#0E3B2E]/10 bg-white px-6 py-1 open:shadow-sm"
             >
-              <AccordionTrigger className="text-[#0F1115] hover:no-underline">
-                <div className="text-right w-full">
-                  <span className="block font-medium">{faq.q_ar}</span>
-                  <span className="block text-sm text-[#0F1115]/40 font-normal">{faq.q_en}</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <p className="text-[#0F1115]/70 leading-relaxed">{faq.a_ar}</p>
-                <p className="text-sm text-[#0F1115]/40 mt-2">{faq.a_en}</p>
-              </AccordionContent>
-            </AccordionItem>
+              <summary className="cursor-pointer list-none py-4 font-medium text-[#0F1115] flex justify-between items-center">
+                <span>{faq.q_ar}</span>
+                <span className="text-[#0F1115]/30 group-open:rotate-45 transition-transform text-xl leading-none">+</span>
+              </summary>
+              <div className="pb-5 text-sm text-[#0F1115]/65 leading-relaxed border-t border-[#0E3B2E]/6 pt-4">
+                {faq.a_ar}
+              </div>
+            </details>
           ))}
-        </Accordion>
+        </div>
       </div>
     </section>
   );

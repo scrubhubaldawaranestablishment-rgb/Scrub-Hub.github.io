@@ -17,9 +17,9 @@ export default async function CompetitorsPage() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#0F1115]">ذكاء المنافسين</h1>
+        <h1 className="text-2xl font-bold text-[#0F1115]">الموقف التنافسي</h1>
         <p className="text-[#0F1115]/50 mt-1">
-          {competitors?.length ?? 0} competitors analyzed
+          {competitors?.length ?? 0} منافس — مع ميزة واضحة للفوز بالصفقة
         </p>
       </div>
 

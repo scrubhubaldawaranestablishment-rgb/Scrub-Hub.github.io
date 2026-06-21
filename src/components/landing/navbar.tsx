@@ -58,7 +58,7 @@ export function Navbar() {
           </Link>
           <Link href="/signup">
             <Button size="sm">
-              {isAr ? "ابدأ مجاناً" : "Start Free"}
+              {isAr ? "٣ فرص مجاناً" : "3 Free Deals"}
             </Button>
           </Link>
         </div>
