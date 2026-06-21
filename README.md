@@ -39,11 +39,46 @@ cp .env.example .env.local
 
 Without an API key, the app runs in **demo mode** with intelligent brand matching and styled preview overlays.
 
+## Supabase (Optional)
+
+StyleMirror can load brands and country trends from your Supabase project (`dilknptetrnicoilhfmb`) instead of the built-in static data.
+
+### 1. Cursor MCP
+
+The project includes `.cursor/mcp.json` scoped to this Supabase project. In Cursor, open **Settings → Tools & MCP**, enable the Supabase server, and sign in when prompted.
+
+### 2. Apply the schema
+
+Run the migration in `supabase/migrations/001_initial_schema.sql` via the Supabase SQL editor or Supabase MCP.
+
+### 3. Configure environment variables
+
+```bash
+cp .env.example .env.local
+```
+
+Set:
+
+- `NEXT_PUBLIC_SUPABASE_URL` — `https://dilknptetrnicoilhfmb.supabase.co`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — from Supabase dashboard → Project Settings → API
+- `SUPABASE_SERVICE_ROLE_KEY` — for server-side writes (generation history)
+
+### 4. Seed brand data
+
+```bash
+# Set SUPABASE_SEED_SECRET in .env.local, then:
+curl -X POST http://localhost:3000/api/seed \
+  -H "Authorization: Bearer your-seed-secret"
+```
+
+When Supabase is not configured, the app automatically falls back to the static brand database in `src/data/brands.ts`.
+
 ## Tech Stack
 
 - **Next.js 16** with App Router
 - **TypeScript** + **Tailwind CSS 4**
 - **OpenAI API** (optional) for vision analysis and image generation
+- **Supabase** (optional) for brands, trends, and generation history
 - Curated brand database for 20+ countries
 
 ## Countries & Brands

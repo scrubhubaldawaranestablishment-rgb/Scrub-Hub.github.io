@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { BrandRecommendation, GenerateResponse } from "@/types";
-import { getBrandsByCountry, getCountryTrends } from "@/data/brands";
 import { getCountryByCode } from "@/data/countries";
+import {
+  getBrandsByCountry,
+  getCountryTrends,
+} from "@/lib/brands-service";
+import { createSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   analyzeUserAI,
   analyzeUserDemo,
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Country not found" }, { status: 404 });
     }
 
-    const brands = getBrandsByCountry(countryCode);
+    const brands = await getBrandsByCountry(countryCode);
     if (brands.length === 0) {
       return NextResponse.json(
         { error: "No brands found for this country" },
@@ -60,6 +64,8 @@ export async function POST(request: Request) {
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 6);
 
+    const countryTrends = await getCountryTrends(countryCode);
+
     const recommendations: BrandRecommendation[] = await Promise.all(
       scoredBrands.map(async ({ brand, matchScore }) => {
         let generatedImageUrl: string;
@@ -78,9 +84,8 @@ export async function POST(request: Request) {
           generatedImageUrl = generateTryOnImageDemo(photoBase64, brand);
         }
 
-        const trendInsight = getCountryTrends(countryCode)[
-          Math.floor(Math.random() * getCountryTrends(countryCode).length)
-        ];
+        const trendInsight =
+          countryTrends[Math.floor(Math.random() * countryTrends.length)];
 
         return {
           brand,
@@ -96,9 +101,21 @@ export async function POST(request: Request) {
     const response: GenerateResponse = {
       analysis,
       recommendations,
-      countryTrends: getCountryTrends(countryCode),
+      countryTrends,
       mode: useAI ? "ai" : "demo",
     };
+
+    if (isSupabaseConfigured()) {
+      const supabase = createSupabaseAdmin();
+      if (supabase) {
+        await supabase.from("generation_sessions").insert({
+          country_code: countryCode,
+          analysis,
+          recommendations,
+          mode: response.mode,
+        });
+      }
+    }
 
     return NextResponse.json(response);
   } catch (error) {

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { getBrandsByCountry, getCountryTrends, getTrendingBrands } from "@/data/brands";
+import {
+  getBrandsByCountry,
+  getCountryTrends,
+  getTrendingBrands,
+} from "@/lib/brands-service";
 import { getCountryByCode } from "@/data/countries";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,9 +23,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Country not found" }, { status: 404 });
   }
 
-  const brands = getBrandsByCountry(countryCode);
-  const trending = getTrendingBrands(countryCode);
-  const trends = getCountryTrends(countryCode);
+  const [brands, trending, trends] = await Promise.all([
+    getBrandsByCountry(countryCode),
+    getTrendingBrands(countryCode),
+    getCountryTrends(countryCode),
+  ]);
 
   return NextResponse.json({
     country,
@@ -28,5 +35,6 @@ export async function GET(request: Request) {
     trending,
     trends,
     total: brands.length,
+    source: isSupabaseConfigured() ? "supabase" : "static",
   });
 }
