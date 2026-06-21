@@ -260,6 +260,28 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      demo_requests: {
+        Row: {
+          id: string;
+          name: string;
+          company_name: string;
+          whatsapp: string;
+          business_type: string;
+          city: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          company_name: string;
+          whatsapp: string;
+          business_type: string;
+          city: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -276,3 +298,4 @@ export type Prospect = Database["public"]["Tables"]["prospects"]["Row"];
 export type Competitor = Database["public"]["Tables"]["competitors"]["Row"];
 export type Insight = Database["public"]["Tables"]["insights"]["Row"];
 export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
+export type DemoRequest = Database["public"]["Tables"]["demo_requests"]["Row"];

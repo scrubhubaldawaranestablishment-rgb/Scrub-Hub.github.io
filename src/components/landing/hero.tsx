@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, TrendingUp, Building2, Target } from "lucide-react";
+import { DemoReportLink } from "@/components/landing/demo-report-link";
 
 export function HeroSection() {
   return (
@@ -48,6 +49,7 @@ export function HeroSection() {
                   كيف نحدد الفرص؟
                 </Button>
               </a>
+              <DemoReportLink size="lg" className="border-[#C8A96B]/40 text-[#0E3B2E] hover:bg-[#C8A96B]/10" />
             </div>
 
             <div className="grid grid-cols-3 gap-6 pt-2 border-t border-[#0E3B2E]/8">

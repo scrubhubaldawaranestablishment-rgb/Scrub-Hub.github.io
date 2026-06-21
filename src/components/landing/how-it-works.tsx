@@ -1,4 +1,5 @@
 import { ClipboardList, ScanSearch, Handshake } from "lucide-react";
+import { DemoReportLink } from "@/components/landing/demo-report-link";
 
 const steps = [
   {
@@ -59,6 +60,10 @@ export function HowItWorks() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-14 text-center">
+          <DemoReportLink size="lg" />
         </div>
       </div>
     </section>

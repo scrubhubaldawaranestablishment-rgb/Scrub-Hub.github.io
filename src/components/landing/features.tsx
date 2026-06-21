@@ -6,6 +6,7 @@ import {
   Lock,
   FileCheck,
 } from "lucide-react";
+import { DemoReportLink } from "@/components/landing/demo-report-link";
 
 const features = [
   {
@@ -75,6 +76,10 @@ export function Features() {
               <p className="text-[#0F1115]/55 leading-relaxed text-sm">{feature.desc_ar}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-14 text-center">
+          <DemoReportLink size="lg" />
         </div>
       </div>
     </section>

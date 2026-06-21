@@ -27,6 +27,7 @@ export function Footer() {
               <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
               <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+              <li><a href="#demo-request" className="hover:text-white transition-colors">اطلب تقرير تجريبي</a></li>
               <li><Link href="/signup" className="hover:text-white transition-colors">٣ فرص مجاناً</Link></li>
             </ul>
           </div>

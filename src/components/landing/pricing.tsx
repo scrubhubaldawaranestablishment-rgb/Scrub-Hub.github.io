@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { PRICING_PLANS } from "@/lib/data/constants";
+import { DemoReportLink } from "@/components/landing/demo-report-link";
 
 export function Pricing() {
   return (
@@ -87,11 +88,22 @@ export function Pricing() {
                   {plan.popular ? "ابدأ بـ ٣ فرص مجاناً" : "اختر الخطة"}
                 </Button>
               </Link>
+              <div className="mt-3">
+                <DemoReportLink
+                  variant="ghost"
+                  size="sm"
+                  className={`w-full ${plan.popular ? "text-white/60 hover:text-white hover:bg-white/10" : "text-white/45 hover:text-white/70"}`}
+                />
+              </div>
             </div>
           ))}
         </div>
 
-        <p className="text-center text-xs text-white/30 mt-10 max-w-xl mx-auto">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
+          <DemoReportLink variant="outline" className="border-white/20 text-white/70 hover:bg-white/5" />
+        </div>
+
+        <p className="text-center text-xs text-white/30 mt-6 max-w-xl mx-auto">
           جميع الأسعار بالريال السعودي. التحليل المجاني يتضمن ٣ فرص كاملة — بدون بطاقة ائتمان.
         </p>
       </div>

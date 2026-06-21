@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
+import { DemoReportLink } from "@/components/landing/demo-report-link";
 
 export function Navbar() {
   const [locale, setLocale] = useState<"ar" | "en">("ar");
@@ -30,6 +31,7 @@ export function Navbar() {
           {[
             { href: "#how-it-works", ar: "كيف يعمل", en: "How It Works" },
             { href: "#features", ar: "المميزات", en: "Features" },
+            { href: "#demo-request", ar: "تقرير تجريبي", en: "Demo Report" },
             { href: "#pricing", ar: "الأسعار", en: "Pricing" },
             { href: "#faq", ar: "الأسئلة الشائعة", en: "FAQ" },
           ].map((item) => (
@@ -51,6 +53,7 @@ export function Navbar() {
             <Globe className="h-4 w-4" />
             {isAr ? "EN" : "عربي"}
           </button>
+          <DemoReportLink variant="ghost" size="sm" />
           <Link href="/login">
             <Button variant="ghost" size="sm">
               {isAr ? "تسجيل الدخول" : "Log In"}
