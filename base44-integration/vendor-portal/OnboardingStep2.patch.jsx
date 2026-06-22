@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from '@/lib/useTranslation';
 
 const SECTOR_SUBCATEGORIES = {
   "Cleaning": [
@@ -50,6 +51,7 @@ function parseSubcategories(raw) {
 }
 
 export default function OnboardingStep2({ data, onChange }) {
+  const { t, isRTL } = useTranslation();
   // Own local state — source of truth for this step
   const [selectedSectors, setSelectedSectors] = useState(
     () => Array.isArray(data.sectors) ? data.sectors : []
@@ -65,7 +67,7 @@ export default function OnboardingStep2({ data, onChange }) {
 
   // subcategories stored as JSON string in entity
   const notify = (sectors, subcategories) => {
-    onChange({ ...data, sectors, subcategories: JSON.stringify(subcategories) });
+    onChange((prev) => ({ ...prev, sectors, subcategories: JSON.stringify(subcategories) }));
   };
 
   const toggleSector = (sector) => {
@@ -98,12 +100,12 @@ export default function OnboardingStep2({ data, onChange }) {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#06B6D4' }}>
-        Sector Selection
+    <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
+      <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isRTL ? 'text-right' : ''}`} style={{ color: '#06B6D4' }}>
+        {t('Sector Selection')}
       </p>
-      <p className="text-sm" style={{ color: '#94a3b8' }}>
-        Select all sectors your company operates in, then choose your subcategories.
+      <p className={`text-sm ${isRTL ? 'text-right' : ''}`} style={{ color: '#94a3b8' }}>
+        {t('ob_sectors_hint')}
       </p>
 
       <div className="space-y-3 mt-4">
