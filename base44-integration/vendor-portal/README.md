@@ -1,5 +1,13 @@
 # Vendor Portal — Form Persistence Fix
 
+## Status: DEPLOYED
+
+**Live on:** https://portal.nosscogroup.com/vendor-portal  
+**Deployed:** June 22, 2026 via `base44 deploy`  
+**Bundle:** `index-mKyO8WsS.js` (includes `nossco-vendor-draft` localStorage persistence)
+
+---
+
 ## Problem
 
 On the live NOSSCO Vendor Portal (`https://portal.nosscogroup.com/vendor-portal`), the 6-step onboarding wizard loses data when users:
@@ -91,13 +99,16 @@ Do NOT change styling or translations. Only fix persistence logic.
 
 ## Deploy to Base44
 
-After applying in the Base44 editor:
+Already deployed. To redeploy after future changes:
 
-1. Click **Publish** in Base44
-2. Or from CLI (after `npx base44 login`):
-   ```bash
-   npx base44 deploy --app-id 6a1ae5a11195cab07d9a51af --yes
-   ```
+```bash
+npx base44 login
+cd nossco-base44   # eject with: npx base44 eject via API tar download
+npm run build
+npx base44 deploy --yes
+```
+
+Then click **Publish** in Base44 if using the editor.
 
 ## CLI eject (for local development)
 

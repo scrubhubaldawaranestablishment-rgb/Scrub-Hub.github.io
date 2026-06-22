@@ -1,20 +1,12 @@
-/**
- * Vendor 6-step onboarding wizard — persistence-fixed version.
- *
- * Apply in Base44: replace the existing VendorOnboardingWizard component
- * (search for "Save & Continue" or the STEPS array with Company Info → Tier).
- *
- * Fixes:
- * - Restores form data + step from Vendor entity on load/refresh
- * - localStorage draft backup on every change (survives refresh before auto-save)
- * - Creates Vendor record on first change (not only when company_name exists)
- * - Syncs step + form when vendor prop loads asynchronously
- * - Flushes pending auto-save on page unload
- */
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import OnboardingStep1 from './OnboardingStep1';
+import OnboardingStep2 from './OnboardingStep2';
+import OnboardingStep3 from './OnboardingStep3';
+import OnboardingStep4 from './OnboardingStep4';
+import OnboardingStep5 from './OnboardingStep5';
+import OnboardingStep6 from './OnboardingStep6';
+import { CheckCircle } from 'lucide-react';
 import {
   saveVendorDraft,
   loadVendorDraft,
@@ -24,14 +16,6 @@ import {
   getResumeStep,
   getMaxReachableStep,
 } from '@/lib/vendorDraftStorage';
-
-// Re-use your existing step components — adjust import paths to match your project
-import CompanyInfoStep from '@/components/vendor/onboarding/CompanyInfoStep';
-import SectorsStep from '@/components/vendor/onboarding/SectorsStep';
-import CapabilitiesStep from '@/components/vendor/onboarding/CapabilitiesStep';
-import DocumentsStep from '@/components/vendor/onboarding/DocumentsStep';
-import ReviewStep from '@/components/vendor/onboarding/ReviewStep';
-import TierStep from '@/components/vendor/onboarding/TierStep';
 
 const STEPS = [
   { num: 1, label: 'Company Info' },
@@ -44,45 +28,29 @@ const STEPS = [
 
 const AUTOSAVE_DELAY_MS = 1200;
 
-export default function VendorOnboardingWizard({
-  vendor,
-  docs,
-  user,
-  isInternalUser,
-  onUpdate,
-  startStep,
-}) {
+export default function VendorOnboardingWizard({ vendor, docs, user, isInternalUser, onUpdate, startStep }) {
   const userEmail = user?.email || '';
   const draft = loadVendorDraft(userEmail);
-
-  const initialForm = mergeVendorData(vendor, draft, userEmail);
+  const initialFormData = mergeVendorData(vendor, draft, userEmail);
   const initialStep =
     startStep ??
-    (isInternalUser
-      ? 5
-      : getResumeStep(vendor, docs, draft, isInternalUser));
+    (isInternalUser ? 5 : getResumeStep(vendor, docs, draft, isInternalUser));
 
-  const [currentStep, setCurrentStep] = useState(initialStep);
-  const [maxStep, setMaxStep] = useState(
-    isInternalUser ? 6 : getMaxReachableStep(vendor, docs)
-  );
-  const [formData, setFormData] = useState(initialForm);
+  const [step, setStep] = useState(initialStep);
+  const [maxStep, setMaxStep] = useState(isInternalUser ? 6 : getMaxReachableStep(vendor, docs));
+  const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
   const autoSaveTimer = useRef(null);
-  const formRef = useRef(initialForm);
-  const vendorIdRef = useRef(vendor?.id || initialForm?.id || null);
+  const formDataRef = useRef(initialFormData);
+  const vendorIdRef = useRef(vendor?.id || initialFormData?.id || null);
   const hydratedVendorId = useRef(vendor?.id ?? null);
 
-  useEffect(() => {
-    formRef.current = formData;
-  }, [formData]);
-
-  useEffect(() => {
-    vendorIdRef.current = vendor?.id || formData?.id || null;
-  }, [vendor?.id, formData?.id]);
+  useEffect(() => { formDataRef.current = formData; }, [formData]);
+  useEffect(() => { vendorIdRef.current = vendor?.id || formData?.id || null; }, [vendor?.id, formData?.id]);
+  useEffect(() => { setSaveError(null); }, [step]);
 
   // Hydrate from server when vendor loads after refresh
   useEffect(() => {
@@ -95,98 +63,80 @@ export default function VendorOnboardingWizard({
     if (isNewVendor) {
       const merged = mergeVendorData(vendor, loadVendorDraft(userEmail), userEmail);
       setFormData(merged);
-      formRef.current = merged;
+      formDataRef.current = merged;
       vendorIdRef.current = vendorId;
 
       if (!isInternalUser && startStep == null) {
         const resume = getResumeStep(vendor, docs, loadVendorDraft(userEmail), false);
-        setCurrentStep(resume);
+        setStep(resume);
         setMaxStep((prev) => Math.max(prev, resume));
       }
     } else if (!isInternalUser && startStep == null) {
       setFormData((prev) => ({ ...vendor, ...prev, id: vendor.id }));
       const resume = getResumeStep(vendor, docs, loadVendorDraft(userEmail), false);
-      setCurrentStep((prev) => Math.max(prev, resume));
+      setStep((prev) => Math.max(prev, resume));
       setMaxStep((prev) => Math.max(prev, resume, getMaxReachableStep(vendor, docs)));
     }
   }, [vendor?.id, vendor?.onboarding_step, vendor?.updated_date, docs?.length, isInternalUser, startStep, userEmail]);
 
-  useEffect(() => {
-    setSaveError(null);
-  }, [currentStep]);
+  const persistToServer = useCallback(async (data, nextStep, { createIfMissing = true } = {}) => {
+    const payload = {
+      contact_email: userEmail || data.contact_email || '',
+      ...data,
+      onboarding_step: Math.max(nextStep, data.onboarding_step || 1),
+    };
 
-  const persistToServer = useCallback(
-    async (data, step, { createIfMissing = true } = {}) => {
-      const payload = {
-        contact_email: userEmail || data.contact_email || '',
-        ...data,
-        onboarding_step: Math.max(step, data.onboarding_step || 1),
-      };
+    const existingId = vendorIdRef.current;
+    if (existingId) {
+      await base44.entities.Vendor.update(existingId, payload);
+      return existingId;
+    }
 
-      const existingId = vendorIdRef.current;
+    if (!createIfMissing) return null;
 
-      if (existingId) {
-        await base44.entities.Vendor.update(existingId, payload);
-        return existingId;
+    const created = await base44.entities.Vendor.create({
+      ...payload,
+      status: 'onboarding',
+      review_status: 'not_submitted',
+    });
+
+    vendorIdRef.current = created.id;
+    setFormData((prev) => ({ ...prev, id: created.id }));
+    onUpdate?.();
+    return created.id;
+  }, [userEmail, onUpdate]);
+
+  const handleFormChange = useCallback((updater) => {
+    setFormData((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const withId = { ...next, id: next.id || prev?.id };
+      formDataRef.current = withId;
+
+      if (!isInternalUser && step < 4) {
+        saveVendorDraft(userEmail, withId, step);
+        saveVendorStep(userEmail, step);
+
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = setTimeout(async () => {
+          try {
+            await persistToServer(formDataRef.current, step);
+            setAutoSaved(true);
+            setTimeout(() => setAutoSaved(false), 2000);
+          } catch (err) {
+            console.error('Auto-save failed:', err);
+          }
+        }, AUTOSAVE_DELAY_MS);
       }
 
-      if (!createIfMissing) return null;
+      return withId;
+    });
+  }, [step, isInternalUser, userEmail, persistToServer]);
 
-      const created = await base44.entities.Vendor.create({
-        ...payload,
-        status: 'onboarding',
-        review_status: 'not_submitted',
-      });
-
-      vendorIdRef.current = created.id;
-      setFormData((prev) => ({ ...prev, id: created.id }));
-      onUpdate?.();
-      return created.id;
-    },
-    [userEmail, onUpdate]
-  );
-
-  const scheduleAutoSave = useCallback(
-    (nextForm, step) => {
-      if (isInternalUser || step >= 4) return;
-
-      saveVendorDraft(userEmail, nextForm, step);
-      saveVendorStep(userEmail, step);
-
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-
-      autoSaveTimer.current = setTimeout(async () => {
-        const latest = formRef.current;
-        try {
-          await persistToServer(latest, step);
-          setAutoSaved(true);
-          setTimeout(() => setAutoSaved(false), 2000);
-        } catch (err) {
-          console.error('Auto-save failed:', err);
-        }
-      }, AUTOSAVE_DELAY_MS);
-    },
-    [isInternalUser, userEmail, persistToServer]
-  );
-
-  const handleFormChange = useCallback(
-    (updater) => {
-      setFormData((prev) => {
-        const next = typeof updater === 'function' ? updater(prev) : updater;
-        const withId = { ...next, id: next.id || prev?.id };
-        scheduleAutoSave(withId, currentStep);
-        return withId;
-      });
-    },
-    [currentStep, scheduleAutoSave]
-  );
-
-  // Keep local draft in sync when leaving the page (refresh / close tab)
   useEffect(() => {
     const flushDraft = () => {
-      if (isInternalUser || currentStep >= 4) return;
-      saveVendorDraft(userEmail, formRef.current, currentStep);
-      saveVendorStep(userEmail, currentStep);
+      if (isInternalUser || step >= 4) return;
+      saveVendorDraft(userEmail, formDataRef.current, step);
+      saveVendorStep(userEmail, step);
     };
 
     window.addEventListener('beforeunload', flushDraft);
@@ -194,41 +144,36 @@ export default function VendorOnboardingWizard({
       window.removeEventListener('beforeunload', flushDraft);
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [currentStep, isInternalUser, userEmail]);
+  }, [step, isInternalUser, userEmail]);
 
-  const goToStep = async (targetStep) => {
+  const saveStep = async (nextStep) => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-
     setSaving(true);
     setSaveError(null);
 
     const payload = {
       contact_email: userEmail || formData.contact_email || '',
       ...formData,
-      onboarding_step: Math.max(
-        targetStep,
-        formData.onboarding_step || 1,
-        vendor?.onboarding_step || 1
-      ),
+      onboarding_step: Math.max(nextStep, formData.onboarding_step || 1, vendor?.onboarding_step || 1),
     };
 
     try {
-      await persistToServer(payload, targetStep);
-      saveVendorDraft(userEmail, payload, targetStep);
-      saveVendorStep(userEmail, targetStep);
-      setCurrentStep(targetStep);
-      setMaxStep((prev) => Math.max(prev, targetStep));
+      await persistToServer(payload, nextStep);
+      saveVendorDraft(userEmail, payload, nextStep);
+      saveVendorStep(userEmail, nextStep);
+      setStep(nextStep);
+      setMaxStep((prev) => Math.max(prev, nextStep));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Save error:', err);
       setSaveError('Could not save your progress. Your data is kept locally — try again.');
-      saveVendorDraft(userEmail, payload, targetStep);
+      saveVendorDraft(userEmail, payload, nextStep);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReview = async (status, notes) => {
+  const handleReview = async (action, notes) => {
     setSaving(true);
     const now = new Date().toISOString();
     const statusMap = {
@@ -237,21 +182,19 @@ export default function VendorOnboardingWizard({
       needs_revision: vendor?.status || 'onboarding',
       needs_human_review: vendor?.status || 'onboarding',
     };
-    const extra = {};
-    if (status === 'approved') extra.approved_date = now;
-    if (status === 'rejected') extra.rejected_date = now;
-
+    const extraFields = {};
+    if (action === 'approved') extraFields.approved_date = now;
+    if (action === 'rejected') extraFields.rejected_date = now;
     await base44.entities.Vendor.update(vendor.id, {
-      review_status: status,
+      review_status: action,
       review_notes: notes,
       reviewed_by: user?.full_name || 'Internal',
       reviewed_date: now,
-      status: statusMap[status] || vendor?.status,
-      ...extra,
+      status: statusMap[action] || vendor?.status,
+      ...extraFields,
     });
-
     setSaving(false);
-    onUpdate?.();
+    onUpdate();
   };
 
   const handleAssignTier = async (tier) => {
@@ -262,22 +205,20 @@ export default function VendorOnboardingWizard({
     });
     if (tier !== 'suspended') clearVendorDraft(userEmail);
     setSaving(false);
-    onUpdate?.();
+    onUpdate();
   };
 
-  const canContinue = () => {
-    if (currentStep === 1) {
-      return !!(formData.company_name && (formData.contact_email || userEmail));
-    }
-    if (currentStep === 2) return (formData.sectors || []).length > 0;
-    if (currentStep === 3) return !!formData.terms_accepted;
+  const canGoNext = () => {
+    if (step === 1) return !!(formData.company_name && (formData.contact_email || userEmail));
+    if (step === 2) return (formData.sectors || []).length > 0;
+    if (step === 3) return !!formData.terms_accepted;
     return true;
   };
 
   const handleDocumentsSuccess = () => {
     clearVendorDraft(userEmail);
-    onUpdate?.();
-    setCurrentStep(5);
+    onUpdate();
+    setStep(5);
     setMaxStep((prev) => Math.max(prev, 5));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -286,101 +227,72 @@ export default function VendorOnboardingWizard({
 
   return (
     <div className="space-y-6">
-      {/* Step indicator */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {STEPS.map((step, index) => {
-          const completed = step.num < maxStep;
-          const active = currentStep === step.num;
-          const reachable = isInternalUser || step.num <= maxStep;
-
+        {STEPS.map((s, i) => {
+          const done = s.num < maxStep;
+          const active = step === s.num;
+          const canAccess = isInternalUser || s.num <= maxStep;
           return (
-            <div key={step.num} className="flex items-center">
+            <div key={s.num} className="flex items-center">
               <button
                 type="button"
-                disabled={!reachable}
-                onClick={() => reachable && setCurrentStep(step.num)}
+                disabled={!canAccess}
+                onClick={() => canAccess && setStep(s.num)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap text-xs font-medium transition-all"
                 style={{
-                  background: active
-                    ? 'rgba(6,182,212,0.15)'
-                    : completed
-                      ? 'rgba(16,185,129,0.08)'
-                      : 'rgba(255,255,255,0.03)',
-                  color: active ? '#06B6D4' : completed ? '#10B981' : '#475569',
-                  border: active
-                    ? '1px solid rgba(6,182,212,0.3)'
-                    : completed
-                      ? '1px solid rgba(16,185,129,0.2)'
-                      : '1px solid rgba(255,255,255,0.05)',
-                  cursor: reachable ? 'pointer' : 'not-allowed',
+                  background: active ? 'rgba(6,182,212,0.15)' : done ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)',
+                  color: active ? '#06B6D4' : done ? '#10B981' : '#475569',
+                  border: active ? '1px solid rgba(6,182,212,0.3)' : done ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.05)',
+                  cursor: canAccess ? 'pointer' : 'not-allowed',
                 }}
               >
-                {completed ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  <span
-                    className="w-4 h-4 rounded-full flex items-center justify-center text-xs"
-                    style={{
-                      background: active ? '#06B6D4' : 'rgba(255,255,255,0.06)',
-                      color: active ? 'white' : 'inherit',
-                    }}
-                  >
-                    {step.num}
-                  </span>
-                )}
-                {step.label}
+                {done ? <CheckCircle className="w-3.5 h-3.5" /> : <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs" style={{ background: active ? '#06B6D4' : 'rgba(255,255,255,0.06)', color: active ? 'white' : 'inherit' }}>{s.num}</span>}
+                {s.label}
               </button>
-              {index < STEPS.length - 1 && (
-                <div
-                  className="w-4 h-px mx-1 flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.08)' }}
-                />
-              )}
+              {i < STEPS.length - 1 && <div className="w-4 h-px mx-1 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
             </div>
           );
         })}
       </div>
 
       <div className="glass-card p-6">
-        {!isInternalUser && currentStep < 4 && (
+        {!isInternalUser && step < 4 && (
           <div className="flex justify-end mb-3 h-4">
             {autoSaved && (
               <span className="text-xs flex items-center gap-1" style={{ color: '#10B981' }}>
-                <Check className="w-3 h-3" /> Saved
+                <CheckCircle className="w-3 h-3" /> Saved
               </span>
             )}
           </div>
         )}
 
         {saveError && (
-          <p className="text-xs mb-3" style={{ color: '#F97316' }}>
-            {saveError}
-          </p>
+          <p className="text-xs mb-3" style={{ color: '#F97316' }}>{saveError}</p>
         )}
 
-        {currentStep === 1 && <CompanyInfoStep data={formData} onChange={handleFormChange} />}
-        {currentStep === 2 && <SectorsStep data={formData} onChange={handleFormChange} />}
-        {currentStep === 3 && <CapabilitiesStep data={formData} onChange={handleFormChange} />}
-        {currentStep === 4 && (
-          <DocumentsStep
+        {step === 1 && <OnboardingStep1 data={formData} onChange={handleFormChange} />}
+        {step === 2 && <OnboardingStep2 data={formData} onChange={handleFormChange} />}
+        {step === 3 && <OnboardingStep3 data={formData} onChange={handleFormChange} />}
+        {step === 4 && (
+          <OnboardingStep4
             docs={docs}
-            setDocs={() => onUpdate?.()}
+            setDocs={() => onUpdate()}
             vendorId={vendorId}
             vendorName={formData.company_name || vendor?.company_name}
             vendor={vendor || formData}
             onSubmitSuccess={handleDocumentsSuccess}
           />
         )}
-        {currentStep === 5 && (
-          <ReviewStep
+        {step === 5 && (
+          <OnboardingStep5
             vendor={vendor || formData}
             docs={docs}
             onReview={handleReview}
             isInternalUser={isInternalUser}
           />
         )}
-        {currentStep === 6 && (
-          <TierStep
+        {step === 6 && (
+          <OnboardingStep6
             vendor={vendor || formData}
             onAssignTier={handleAssignTier}
             isInternalUser={isInternalUser}
@@ -390,40 +302,30 @@ export default function VendorOnboardingWizard({
 
       {!isInternalUser && (
         <div className="flex items-center justify-between">
-          {currentStep > 1 ? (
+          {step > 1 ? (
             <button
               type="button"
-              onClick={() =>
-                currentStep <= 3 ? goToStep(currentStep - 1) : setCurrentStep((s) => s - 1)
-              }
+              onClick={() => (step <= 3 ? saveStep(step - 1) : setStep((s) => s - 1))}
               className="text-sm px-4 py-2 rounded-lg"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                color: '#94a3b8',
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
+              style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               {saving ? '...' : '← Back'}
             </button>
-          ) : (
-            <div />
-          )}
+          ) : <div />}
 
-          {currentStep < 4 && (
+          {step < 4 && (
             <button
               type="button"
-              disabled={!canContinue() || saving}
-              onClick={() => goToStep(currentStep + 1)}
+              disabled={!canGoNext() || saving}
+              onClick={() => saveStep(step + 1)}
               className="text-sm px-6 py-2 rounded-lg font-medium transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
-                color: 'white',
-                opacity: canContinue() && !saving ? 1 : 0.4,
-              }}
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #06B6D4)', color: 'white', opacity: canGoNext() && !saving ? 1 : 0.4 }}
             >
               {saving ? 'Saving...' : 'Save & Continue →'}
             </button>
           )}
+
+          {step === 4 && <div />}
         </div>
       )}
     </div>
