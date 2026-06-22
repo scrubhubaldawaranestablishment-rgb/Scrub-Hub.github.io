@@ -52,6 +52,19 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
   useEffect(() => { vendorIdRef.current = vendor?.id || formData?.id || null; }, [vendor?.id, formData?.id]);
   useEffect(() => { setSaveError(null); }, [step]);
 
+  // Hydrate from local draft when no server vendor yet (e.g. after failed create)
+  useEffect(() => {
+    if (vendor?.id || !userEmail) return;
+    const localDraft = loadVendorDraft(userEmail);
+    if (!localDraft?.formData) return;
+
+    setFormData((prev) => mergeVendorData(null, localDraft, userEmail));
+    if (!isInternalUser && startStep == null && localDraft.step) {
+      setStep(localDraft.step);
+      setMaxStep((prev) => Math.max(prev, localDraft.step));
+    }
+  }, [userEmail, vendor?.id, isInternalUser, startStep]);
+
   // Hydrate from server when vendor loads after refresh
   useEffect(() => {
     if (!vendor?.id) return;
@@ -87,9 +100,30 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
     };
 
     const existingId = vendorIdRef.current;
+
+    try {
+      const result = await base44.functions.invoke('saveVendorOnboarding', {
+        vendorId: existingId || null,
+        formData: payload,
+        onboardingStep: nextStep,
+      });
+
+      const saved = result?.data?.vendor || result?.vendor;
+      if (saved?.id) {
+        vendorIdRef.current = saved.id;
+        setFormData((prev) => ({ ...prev, ...saved, id: saved.id }));
+        onUpdate?.();
+        return saved.id;
+      }
+    } catch (fnErr) {
+      console.warn('saveVendorOnboarding failed, falling back to entity API:', fnErr);
+    }
+
+    // Fallback to direct entity API (works after RLS fix)
     if (existingId) {
-      await base44.entities.Vendor.update(existingId, payload);
-      return existingId;
+      const updated = await base44.entities.Vendor.update(existingId, payload);
+      onUpdate?.();
+      return updated?.id || existingId;
     }
 
     if (!createIfMissing) return null;

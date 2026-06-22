@@ -7,7 +7,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { ClipboardList, LayoutDashboard, ShieldCheck, ChevronDown, PenSquare } from 'lucide-react';
 import { useTranslation } from '@/lib/useTranslation';
 import { useAppSettings } from '@/lib/AppSettingsContext';
-import { saveVendorTab, loadVendorTab, loadVendorStep } from '@/lib/vendorDraftStorage';
+import { saveVendorTab, loadVendorTab, loadVendorStep, hasVendorDraft, loadVendorDraft } from '@/lib/vendorDraftStorage';
 
 export default function VendorPortal() {
   const { t } = useTranslation();
@@ -80,7 +80,10 @@ export default function VendorPortal() {
 
     const internal = ['admin', 'operations', 'vendor_success'].includes(user.role);
     const savedTab = loadVendorTab(user.email);
-    const hasIncompleteOnboarding = vendor && !vendor.onboarding_complete;
+    const draft = loadVendorDraft(user.email);
+    const hasDraft = hasVendorDraft(user.email);
+    const hasIncompleteOnboarding =
+      (vendor && !vendor.onboarding_complete) || hasDraft;
 
     if (internal) {
       setView(savedTab === 'onboarding' ? 'onboarding' : 'compliance');
@@ -88,7 +91,7 @@ export default function VendorPortal() {
     }
 
     if (hasIncompleteOnboarding) {
-      const savedStep = loadVendorStep(user.email);
+      const savedStep = loadVendorStep(user.email) || draft?.step;
       if (savedStep) setOnboardingStartStep(savedStep);
       setView(savedTab === 'compliance' ? 'compliance' : 'onboarding');
       return;
@@ -227,18 +230,18 @@ export default function VendorPortal() {
       {/* TAB: Edit Application */}
       {view === 'onboarding' && (
         <div className="glass-card p-6">
-          {!isInternalUser && vendor && !vendor.onboarding_complete && (
+          {!isInternalUser && (vendor || hasVendorDraft(user?.email)) && !vendor?.onboarding_complete && (
             <div className="rounded-xl px-4 py-3 mb-5 flex items-center justify-between gap-4"
               style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)' }}>
               <div>
                 <p className="text-sm font-semibold text-white">📝 Continue Your Application</p>
                 <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
-                  You stopped at Step {vendor.onboarding_step || 1}. All your data is saved.
+                  You stopped at Step {vendor?.onboarding_step || loadVendorStep(user?.email) || loadVendorDraft(user?.email)?.step || 1}. All your data is saved.
                 </p>
               </div>
               <span className="text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap"
                 style={{ background: 'rgba(6,182,212,0.12)', color: '#06B6D4', border: '1px solid rgba(6,182,212,0.2)' }}>
-                Step {vendor.onboarding_step || 1} of 6
+                Step {vendor?.onboarding_step || loadVendorStep(user?.email) || loadVendorDraft(user?.email)?.step || 1} of 6
               </span>
             </div>
           )}
