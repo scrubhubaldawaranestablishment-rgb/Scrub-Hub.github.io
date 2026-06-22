@@ -1,21 +1,15 @@
 import { useTranslation } from "react-i18next";
-import NosscoLogo from "./NosscoLogo";
-import Vision2030Badge from "./Vision2030Badge";
+import BrandHeader from "./BrandHeader";
+
+const VISION_SRC = "/assets/saudi-vision.png";
 
 function StatItem({ value, label }) {
   return (
-    <div className="space-y-1">
-      <div className="stat-value text-3xl font-bold sm:text-4xl">{value}</div>
-      <div className="text-sm text-slate-400">{label}</div>
-    </div>
-  );
-}
-
-function StatusBadge({ color, label }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
-      <span>{label}</span>
+    <div className="flex flex-col gap-0.5">
+      <span className="text-2xl font-bold text-white">{value}</span>
+      <span className="text-xs" style={{ color: "rgb(74, 127, 168)" }}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -24,34 +18,42 @@ export default function MarketingPanel() {
   const { t } = useTranslation();
 
   return (
-    <section className="relative flex min-h-full flex-col justify-between px-6 py-8 sm:px-10 lg:px-14 lg:py-10">
-      <div className="space-y-8">
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <NosscoLogo className="h-11 w-11" />
-            <div className="text-xs font-semibold tracking-[0.22em] text-slate-100 sm:text-sm">
-              {t("brand.portal")}
-            </div>
-          </div>
+    <section className="relative flex h-full flex-col p-10 xl:p-14">
+      <BrandHeader portalLabel={t("brand.portalSubtitle")} />
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-medium tracking-wide text-blue-100 sm:text-sm">
-            <span className="h-2 w-2 rounded-full bg-blue-400" />
-            <span>{t("locationBadge")}</span>
-          </div>
+      <div className="flex flex-col gap-7 py-12">
+        <div
+          className="inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest"
+          style={{
+            background: "rgba(59, 130, 246, 0.12)",
+            border: "1px solid rgba(59, 130, 246, 0.3)",
+            color: "rgb(147, 197, 253)",
+          }}
+        >
+          <span
+            className="h-2 w-2 rounded-full bg-blue-400"
+            style={{ boxShadow: "rgb(96, 165, 250) 0px 0px 8px" }}
+          />
+          <span>{t("locationBadge")}</span>
         </div>
 
-        <div className="max-w-2xl space-y-5">
-          <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
-            {t("hero.titlePrefix")}{" "}
-            <span className="text-blue-300">{t("hero.titleHighlight")}</span>{" "}
-            {t("hero.titleSuffix")}
-          </h1>
-          <p className="max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
-            {t("hero.description")}
-          </p>
-        </div>
+        <h1 className="text-4xl font-bold leading-tight text-white xl:text-5xl">
+          {t("hero.titlePrefix")}{" "}
+          <span style={{ color: "rgb(96, 165, 250)" }}>
+            {t("hero.titleHighlight")}
+          </span>
+          <br />
+          {t("hero.titleSuffix")}
+        </h1>
 
-        <div className="grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-3">
+        <p
+          className="max-w-md text-base leading-relaxed"
+          style={{ color: "rgb(123, 163, 204)" }}
+        >
+          {t("hero.description")}
+        </p>
+
+        <div className="flex items-center gap-8 pt-1">
           <StatItem
             value={t("stats.uptime.value")}
             label={t("stats.uptime.label")}
@@ -66,14 +68,48 @@ export default function MarketingPanel() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <StatusBadge color="bg-emerald-400" label={t("badges.tickets")} />
-          <StatusBadge color="bg-blue-400" label={t("badges.response")} />
+        <div
+          className="mt-1 flex items-center gap-6 self-start rounded-2xl px-5 py-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            border: "1px solid rgba(96, 165, 250, 0.15)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className="h-2 w-2 rounded-full bg-green-400"
+              style={{ boxShadow: "rgb(74, 222, 128) 0px 0px 8px" }}
+            />
+            <span className="text-sm font-semibold text-white">
+              {t("badges.tickets")}
+            </span>
+          </div>
+          <div className="h-5 w-px" style={{ background: "rgba(255,255,255,0.12)" }} />
+          <div className="flex items-center gap-2">
+            <div
+              className="h-2 w-2 rounded-full bg-blue-400"
+              style={{ boxShadow: "rgb(96, 165, 250) 0px 0px 8px" }}
+            />
+            <span className="text-sm font-semibold text-white">
+              {t("badges.response")}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-10">
-        <Vision2030Badge />
+      <div
+        className="mt-auto flex items-center gap-4 pt-6"
+        style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}
+      >
+        <img
+          src={VISION_SRC}
+          alt="Vision 2030"
+          className="h-10 w-auto opacity-60"
+        />
+        <p className="text-xs" style={{ color: "rgb(45, 90, 122)" }}>
+          {t("vision2030")}
+        </p>
       </div>
     </section>
   );
