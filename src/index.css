@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --nossco-bg: #070d1a;
+  --nossco-panel: #0f1729;
+  --nossco-card: #121c31;
+  --nossco-border: rgba(148, 163, 184, 0.14);
+  --nossco-accent: #3b82f6;
+  --nossco-accent-soft: #60a5fa;
+  --nossco-muted: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--nossco-bg);
+  color: #f8fafc;
+  font-family: Inter, "IBM Plex Sans Arabic", system-ui, sans-serif;
+}
+
+html[lang="ar"] body {
+  font-family: "IBM Plex Sans Arabic", Inter, system-ui, sans-serif;
+}
+
+.network-bg {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.18), transparent 35%),
+    radial-gradient(circle at 80% 10%, rgba(37, 99, 235, 0.12), transparent 30%),
+    linear-gradient(180deg, #070d1a 0%, #0b1220 100%);
+}
+
+.network-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 40%, rgba(96, 165, 250, 0.35) 1px, transparent 1px),
+    radial-gradient(circle at 55% 65%, rgba(96, 165, 250, 0.25) 1px, transparent 1px),
+    radial-gradient(circle at 82% 35%, rgba(96, 165, 250, 0.2) 1px, transparent 1px);
+  background-size: 180px 180px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.network-lines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.25;
+  background:
+    linear-gradient(125deg, transparent 48%, rgba(96, 165, 250, 0.35) 49%, transparent 51%),
+    linear-gradient(35deg, transparent 62%, rgba(59, 130, 246, 0.2) 63%, transparent 65%);
+  pointer-events: none;
+}
+
+.glass-card {
+  background: rgba(18, 28, 49, 0.92);
+  border: 1px solid var(--nossco-border);
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.input-shell {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.input-shell:focus-within {
+  border-color: rgba(96, 165, 250, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.stat-value {
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

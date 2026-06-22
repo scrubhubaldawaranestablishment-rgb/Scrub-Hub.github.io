@@ -1,0 +1,51 @@
+{
+  "brand": {
+    "portal": "بوابة عمليات نوزكو",
+    "company": "مجموعة نوزكو — الشركة الوطنية لخدمات الدعم التشغيلي"
+  },
+  "locationBadge": "الشركة الوطنية للتعهيد — جدة",
+  "hero": {
+    "titlePrefix": "عقد واحد،",
+    "titleHighlight": "جميع الخدمات،",
+    "titleSuffix": "إدارة كاملة.",
+    "description": "شريك واحد مسؤول لإدارة المرافق، والنظافة، والصيانة، والقوى العاملة، والخدمات اللوجستية. عقد واحد مع رؤية فورية."
+  },
+  "stats": {
+    "uptime": {
+      "value": "99.98%",
+      "label": "جاهزية المنصة"
+    },
+    "tickets": {
+      "value": "+128",
+      "label": "تذكرة تم حلها اليوم"
+    },
+    "response": {
+      "value": "4س",
+      "label": "متوسط وقت الاستجابة"
+    }
+  },
+  "badges": {
+    "tickets": "+128 تذكرة تم حلها",
+    "response": "استجابة خلال 4 ساعات"
+  },
+  "vision2030": "متوافق مع رؤية 2030",
+  "login": {
+    "welcome": "مرحباً بعودتك",
+    "subtitle": "سجّل الدخول إلى حسابك في بوابة نوزكو",
+    "google": "المتابعة باستخدام Google",
+    "divider": "أو سجّل الدخول بالبريد الإلكتروني",
+    "emailLabel": "البريد الإلكتروني",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "passwordPlaceholder": "••••••••",
+    "signIn": "تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟",
+    "requestAccess": "طلب الوصول"
+  },
+  "language": {
+    "switchToArabic": "العربية",
+    "switchToEnglish": "English"
+  },
+  "copyright": "© 2025 مجموعة نوزكو — الشركة الوطنية لخدمات الدعم التشغيلي"
+}

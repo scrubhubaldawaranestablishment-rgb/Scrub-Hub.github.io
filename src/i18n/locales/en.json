@@ -1,0 +1,51 @@
+{
+  "brand": {
+    "portal": "NOSSCO OPERATIONS PORTAL",
+    "company": "NOSSCO Group — National Operational Support Services Company"
+  },
+  "locationBadge": "SAUDI NATIONAL OUTSOURCING COMPANY — JEDDAH",
+  "hero": {
+    "titlePrefix": "One contract,",
+    "titleHighlight": "all services,",
+    "titleSuffix": "fully managed.",
+    "description": "A single accountable partner for Facility Management, cleaning, maintenance, manpower and logistics. One contract with real-time visibility."
+  },
+  "stats": {
+    "uptime": {
+      "value": "99.98%",
+      "label": "Platform uptime"
+    },
+    "tickets": {
+      "value": "128+",
+      "label": "Tickets resolved today"
+    },
+    "response": {
+      "value": "4h",
+      "label": "Avg. response time"
+    }
+  },
+  "badges": {
+    "tickets": "128+ Tickets resolved",
+    "response": "4h response"
+  },
+  "vision2030": "Aligned with Vision 2030",
+  "login": {
+    "welcome": "Welcome back",
+    "subtitle": "Sign in to your NOSSCO portal account",
+    "google": "Continue with Google",
+    "divider": "or sign in with email",
+    "emailLabel": "EMAIL ADDRESS",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "PASSWORD",
+    "forgotPassword": "Forgot password?",
+    "passwordPlaceholder": "••••••••",
+    "signIn": "Sign In",
+    "noAccount": "Don't have an account?",
+    "requestAccess": "Request access"
+  },
+  "language": {
+    "switchToArabic": "العربية",
+    "switchToEnglish": "English"
+  },
+  "copyright": "© 2025 NOSSCO Group — National Operational Support Services Company"
+}
