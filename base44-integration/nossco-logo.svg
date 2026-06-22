@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="NOSSCO">
+  <rect width="48" height="48" rx="12" fill="url(#nossco-bg)" />
+  <path
+    d="M14 32V16h4.8l5.2 9.2L29.2 16H34v16h-4.6V22.8L24.8 32h-2.8l-4.6-9.2V32H14z"
+    fill="white"
+  />
+  <circle cx="36" cy="14" r="3" fill="#93C5FD" />
+  <defs>
+    <linearGradient id="nossco-bg" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB" />
+      <stop offset="1" stop-color="#1D4ED8" />
+    </linearGradient>
+  </defs>
+</svg>
