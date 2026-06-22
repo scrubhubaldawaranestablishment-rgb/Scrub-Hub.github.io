@@ -1,17 +1,19 @@
 export const SA_PHONE_PREFIX = '+966 ';
+export const CR_DIGIT_LENGTH = 10;
+export const VAT_DIGIT_LENGTH = 15;
 
-export function digitsOnly(value, maxLen = 10) {
+export function digitsOnly(value, maxLen) {
   return String(value || '').replace(/\D/g, '').slice(0, maxLen);
 }
 
-export function isTenDigitFieldValid(value) {
-  const digits = digitsOnly(value, 10);
-  return digits.length === 10;
+export function isDigitFieldValid(value, requiredLen) {
+  const digits = digitsOnly(value, requiredLen);
+  return digits.length === requiredLen;
 }
 
-export function tenDigitFieldStyle(value) {
-  const digits = digitsOnly(value, 10);
-  const invalid = digits.length > 0 && digits.length !== 10;
+export function digitFieldStyle(value, requiredLen) {
+  const digits = digitsOnly(value, requiredLen);
+  const invalid = digits.length > 0 && digits.length !== requiredLen;
   return {
     background: 'rgba(255,255,255,0.05)',
     border: invalid ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(6,182,212,0.2)',

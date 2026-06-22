@@ -2,9 +2,11 @@ import CitiesCoveredSelector from '@/components/vendor/CitiesCoveredSelector';
 import { useTranslation } from '@/lib/useTranslation';
 import {
   SA_PHONE_PREFIX,
+  CR_DIGIT_LENGTH,
+  VAT_DIGIT_LENGTH,
   digitsOnly,
-  tenDigitFieldStyle,
-  isTenDigitFieldValid,
+  digitFieldStyle,
+  isDigitFieldValid,
   normalizeSaPhone,
   phoneLocalPart,
 } from '@/lib/vendorFormUtils';
@@ -54,11 +56,12 @@ export default function OnboardingStep1({ data, onChange }) {
   const { t, lang, isRTL } = useTranslation();
   const set = (k, v) => onChange({ ...data, [k]: v });
 
-  const crDigits = digitsOnly(data.cr_number, 10);
-  const vatDigits = digitsOnly(data.vat_number, 10);
-  const crInvalid = crDigits.length > 0 && crDigits.length !== 10;
-  const vatInvalid = vatDigits.length > 0 && vatDigits.length !== 10;
-  const digitError = t('Must be exactly 10 digits');
+  const crDigits = digitsOnly(data.cr_number, CR_DIGIT_LENGTH);
+  const vatDigits = digitsOnly(data.vat_number, VAT_DIGIT_LENGTH);
+  const crInvalid = crDigits.length > 0 && crDigits.length !== CR_DIGIT_LENGTH;
+  const vatInvalid = vatDigits.length > 0 && vatDigits.length !== VAT_DIGIT_LENGTH;
+  const crError = t('CR must be exactly 10 digits');
+  const vatError = t('VAT must be exactly 15 digits');
 
   const phoneValue = normalizeSaPhone(data.contact_phone);
   const whatsappValue = normalizeSaPhone(data.whatsapp);
@@ -82,27 +85,27 @@ export default function OnboardingStep1({ data, onChange }) {
             dir={isRTL ? 'rtl' : 'ltr'}
           />
         </Field>
-        <Field label={t('CR Number')} error={crInvalid ? digitError : null} isRTL={isRTL}>
+        <Field label={t('CR Number')} error={crInvalid ? crError : null} isRTL={isRTL}>
           <input
             className={inputCls}
-            style={tenDigitFieldStyle(crDigits)}
+            style={digitFieldStyle(crDigits, CR_DIGIT_LENGTH)}
             value={crDigits}
-            onChange={(e) => set('cr_number', digitsOnly(e.target.value, 10))}
+            onChange={(e) => set('cr_number', digitsOnly(e.target.value, CR_DIGIT_LENGTH))}
             placeholder="1234567890"
             inputMode="numeric"
-            maxLength={10}
+            maxLength={CR_DIGIT_LENGTH}
             dir="ltr"
           />
         </Field>
-        <Field label={t('VAT Number')} error={vatInvalid ? digitError : null} isRTL={isRTL}>
+        <Field label={t('VAT Number')} error={vatInvalid ? vatError : null} isRTL={isRTL}>
           <input
             className={inputCls}
-            style={tenDigitFieldStyle(vatDigits)}
+            style={digitFieldStyle(vatDigits, VAT_DIGIT_LENGTH)}
             value={vatDigits}
-            onChange={(e) => set('vat_number', digitsOnly(e.target.value, 10))}
-            placeholder="1234567890"
+            onChange={(e) => set('vat_number', digitsOnly(e.target.value, VAT_DIGIT_LENGTH))}
+            placeholder="300000000000003"
             inputMode="numeric"
-            maxLength={10}
+            maxLength={VAT_DIGIT_LENGTH}
             dir="ltr"
           />
         </Field>
@@ -185,12 +188,12 @@ export default function OnboardingStep1({ data, onChange }) {
 }
 
 export function isStep1Valid(data, userEmail) {
-  const cr = digitsOnly(data.cr_number, 10);
-  const vat = digitsOnly(data.vat_number, 10);
+  const cr = digitsOnly(data.cr_number, CR_DIGIT_LENGTH);
+  const vat = digitsOnly(data.vat_number, VAT_DIGIT_LENGTH);
   return !!(
     data.company_name &&
     (data.contact_email || userEmail) &&
-    isTenDigitFieldValid(cr) &&
-    isTenDigitFieldValid(vat)
+    isDigitFieldValid(cr, CR_DIGIT_LENGTH) &&
+    isDigitFieldValid(vat, VAT_DIGIT_LENGTH)
   );
 }
