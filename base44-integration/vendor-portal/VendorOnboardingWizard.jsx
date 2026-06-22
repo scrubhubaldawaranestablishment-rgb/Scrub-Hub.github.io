@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import OnboardingStep1 from './OnboardingStep1';
+import OnboardingStep1, { isStep1Valid } from './OnboardingStep1';
 import OnboardingStep2 from './OnboardingStep2';
 import OnboardingStep3 from './OnboardingStep3';
 import OnboardingStep4 from './OnboardingStep4';
@@ -15,20 +15,21 @@ import {
   mergeVendorData,
   getResumeStep,
   getMaxReachableStep,
+  hasVendorDraft,
 } from '@/lib/vendorDraftStorage';
+import { useTranslation } from '@/lib/useTranslation';
 
-const STEPS = [
-  { num: 1, label: 'Company Info' },
-  { num: 2, label: 'Sectors' },
-  { num: 3, label: 'Capabilities' },
-  { num: 4, label: 'Documents' },
-  { num: 5, label: 'Review' },
-  { num: 6, label: 'Tier' },
+const STEP_KEYS = [
+  { num: 1, labelKey: 'ob_step_company' },
+  { num: 2, labelKey: 'ob_step_sectors' },
+  { num: 3, labelKey: 'ob_step_capabilities' },
+  { num: 4, labelKey: 'ob_step_documents' },
+  { num: 5, labelKey: 'ob_step_review' },
+  { num: 6, labelKey: 'ob_step_tier' },
 ];
 
-const AUTOSAVE_DELAY_MS = 1200;
-
 export default function VendorOnboardingWizard({ vendor, docs, user, isInternalUser, onUpdate, startStep }) {
+  const { t, isRTL } = useTranslation();
   const userEmail = user?.email || '';
   const draft = loadVendorDraft(userEmail);
   const initialFormData = mergeVendorData(vendor, draft, userEmail);
@@ -40,10 +41,9 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
   const [maxStep, setMaxStep] = useState(isInternalUser ? 6 : getMaxReachableStep(vendor, docs));
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
-  const [autoSaved, setAutoSaved] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
 
-  const autoSaveTimer = useRef(null);
   const formDataRef = useRef(initialFormData);
   const vendorIdRef = useRef(vendor?.id || initialFormData?.id || null);
   const hydratedVendorId = useRef(vendor?.id ?? null);
@@ -51,6 +51,14 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
   useEffect(() => { formDataRef.current = formData; }, [formData]);
   useEffect(() => { vendorIdRef.current = vendor?.id || formData?.id || null; }, [vendor?.id, formData?.id]);
   useEffect(() => { setSaveError(null); }, [step]);
+
+  // Jump to a specific step when parent requests it (e.g. dashboard "edit step 1")
+  useEffect(() => {
+    if (startStep != null) {
+      setStep(startStep);
+      setMaxStep((prev) => Math.max(prev, startStep));
+    }
+  }, [startStep]);
 
   // Hydrate from local draft when no server vendor yet (e.g. after failed create)
   useEffect(() => {
@@ -65,32 +73,27 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
     }
   }, [userEmail, vendor?.id, isInternalUser, startStep]);
 
-  // Hydrate from server when vendor loads after refresh
+  // Hydrate from server only when vendor record first loads — never bump step on later updates
   useEffect(() => {
     if (!vendor?.id) return;
 
     const vendorId = vendor.id;
     const isNewVendor = vendorId !== hydratedVendorId.current;
+    if (!isNewVendor) return;
+
     hydratedVendorId.current = vendorId;
 
-    if (isNewVendor) {
-      const merged = mergeVendorData(vendor, loadVendorDraft(userEmail), userEmail);
-      setFormData(merged);
-      formDataRef.current = merged;
-      vendorIdRef.current = vendorId;
+    const merged = mergeVendorData(vendor, loadVendorDraft(userEmail), userEmail);
+    setFormData(merged);
+    formDataRef.current = merged;
+    vendorIdRef.current = vendorId;
 
-      if (!isInternalUser && startStep == null) {
-        const resume = getResumeStep(vendor, docs, loadVendorDraft(userEmail), false);
-        setStep(resume);
-        setMaxStep((prev) => Math.max(prev, resume));
-      }
-    } else if (!isInternalUser && startStep == null) {
-      setFormData((prev) => ({ ...vendor, ...prev, id: vendor.id }));
+    if (!isInternalUser && startStep == null) {
       const resume = getResumeStep(vendor, docs, loadVendorDraft(userEmail), false);
-      setStep((prev) => Math.max(prev, resume));
-      setMaxStep((prev) => Math.max(prev, resume, getMaxReachableStep(vendor, docs)));
+      setStep(resume);
+      setMaxStep((prev) => Math.max(prev, resume));
     }
-  }, [vendor?.id, vendor?.onboarding_step, vendor?.updated_date, docs?.length, isInternalUser, startStep, userEmail]);
+  }, [vendor?.id, docs, isInternalUser, startStep, userEmail]);
 
   const persistToServer = useCallback(async (data, nextStep, { createIfMissing = true } = {}) => {
     const payload = {
@@ -146,25 +149,15 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
       const withId = { ...next, id: next.id || prev?.id };
       formDataRef.current = withId;
 
+      // Local draft only — server save happens on "Save & Continue" / Back (steps 1–3)
       if (!isInternalUser && step < 4) {
         saveVendorDraft(userEmail, withId, step);
         saveVendorStep(userEmail, step);
-
-        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-        autoSaveTimer.current = setTimeout(async () => {
-          try {
-            await persistToServer(formDataRef.current, step);
-            setAutoSaved(true);
-            setTimeout(() => setAutoSaved(false), 2000);
-          } catch (err) {
-            console.error('Auto-save failed:', err);
-          }
-        }, AUTOSAVE_DELAY_MS);
       }
 
       return withId;
     });
-  }, [step, isInternalUser, userEmail, persistToServer]);
+  }, [step, isInternalUser, userEmail]);
 
   useEffect(() => {
     const flushDraft = () => {
@@ -174,14 +167,10 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
     };
 
     window.addEventListener('beforeunload', flushDraft);
-    return () => {
-      window.removeEventListener('beforeunload', flushDraft);
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    };
+    return () => window.removeEventListener('beforeunload', flushDraft);
   }, [step, isInternalUser, userEmail]);
 
   const saveStep = async (nextStep) => {
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     setSaving(true);
     setSaveError(null);
 
@@ -197,6 +186,7 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
       saveVendorStep(userEmail, nextStep);
       setStep(nextStep);
       setMaxStep((prev) => Math.max(prev, nextStep));
+      setLastSavedAt(Date.now());
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Save error:', err);
@@ -243,7 +233,7 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
   };
 
   const canGoNext = () => {
-    if (step === 1) return !!(formData.company_name && (formData.contact_email || userEmail));
+    if (step === 1) return isStep1Valid(formData, userEmail);
     if (step === 2) return (formData.sectors || []).length > 0;
     if (step === 3) return !!formData.terms_accepted;
     return true;
@@ -258,11 +248,30 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
   };
 
   const vendorId = vendor?.id || formData.id;
+  const canContinue = canGoNext() && !saving;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+      {!isInternalUser && (vendor || hasVendorDraft(userEmail)) && !vendor?.onboarding_complete && (
+        <div className="rounded-xl px-4 py-3 flex items-center justify-between gap-4"
+          style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)' }}>
+          <div>
+            <p className="text-sm font-semibold text-white">{t('Continue Your Application')}</p>
+            <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+              {step < 4
+                ? t('Edit your answers below, then click Save & Continue when ready.')
+                : t('You stopped at step. All your data is saved.', { step })}
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap"
+            style={{ background: 'rgba(6,182,212,0.12)', color: '#06B6D4', border: '1px solid rgba(6,182,212,0.2)' }}>
+            {t('Step of 6', { step })}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {STEPS.map((s, i) => {
+        {STEP_KEYS.map((s, i) => {
           const done = s.num < maxStep;
           const active = step === s.num;
           const canAccess = isInternalUser || s.num <= maxStep;
@@ -271,7 +280,14 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
               <button
                 type="button"
                 disabled={!canAccess}
-                onClick={() => canAccess && setStep(s.num)}
+                onClick={() => {
+                  if (!canAccess) return;
+                  if (!isInternalUser && s.num < 4) {
+                    saveVendorDraft(userEmail, formDataRef.current, s.num);
+                    saveVendorStep(userEmail, s.num);
+                  }
+                  setStep(s.num);
+                }}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap text-xs font-medium transition-all"
                 style={{
                   background: active ? 'rgba(6,182,212,0.15)' : done ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)',
@@ -281,9 +297,9 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
                 }}
               >
                 {done ? <CheckCircle className="w-3.5 h-3.5" /> : <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs" style={{ background: active ? '#06B6D4' : 'rgba(255,255,255,0.06)', color: active ? 'white' : 'inherit' }}>{s.num}</span>}
-                {s.label}
+                {t(s.labelKey)}
               </button>
-              {i < STEPS.length - 1 && <div className="w-4 h-px mx-1 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+              {i < STEP_KEYS.length - 1 && <div className="w-4 h-px mx-1 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
             </div>
           );
         })}
@@ -292,9 +308,9 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
       <div className="glass-card p-6">
         {!isInternalUser && step < 4 && (
           <div className="flex justify-end mb-3 h-4">
-            {autoSaved && (
+            {lastSavedAt && Date.now() - lastSavedAt < 5000 && (
               <span className="text-xs flex items-center gap-1" style={{ color: '#10B981' }}>
-                <CheckCircle className="w-3 h-3" /> Saved
+                <CheckCircle className="w-3 h-3" /> {t('Saved')}
               </span>
             )}
           </div>
@@ -343,19 +359,24 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
               className="text-sm px-4 py-2 rounded-lg"
               style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              {saving ? '...' : '← Back'}
+              {saving ? '...' : t('← Back')}
             </button>
           ) : <div />}
 
           {step < 4 && (
             <button
               type="button"
-              disabled={!canGoNext() || saving}
+              disabled={!canContinue}
               onClick={() => saveStep(step + 1)}
               className="text-sm px-6 py-2 rounded-lg font-medium transition-all"
-              style={{ background: 'linear-gradient(135deg, #3B82F6, #06B6D4)', color: 'white', opacity: canGoNext() && !saving ? 1 : 0.4 }}
+              style={{
+                background: canContinue ? 'linear-gradient(135deg, #3B82F6, #06B6D4)' : 'rgba(255,255,255,0.06)',
+                color: canContinue ? 'white' : '#64748b',
+                border: canContinue ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                cursor: canContinue ? 'pointer' : 'not-allowed',
+              }}
             >
-              {saving ? 'Saving...' : 'Save & Continue →'}
+              {saving ? t('Saving...') : t('Save & Continue →')}
             </button>
           )}
 
