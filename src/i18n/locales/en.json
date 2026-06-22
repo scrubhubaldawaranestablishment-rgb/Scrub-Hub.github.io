@@ -1,8 +1,10 @@
 {
   "brand": {
     "portal": "NOSSCO OPERATIONS PORTAL",
-    "company": "NOSSCO Group — National Operational Support Services Company"
+    "company": "NOSSCO Group — National Operational Support Services Company",
+    "logoAlt": "NOSSCO logo"
   },
+  "vision2030Alt": "Vision 2030 logo",
   "locationBadge": "SAUDI NATIONAL OUTSOURCING COMPANY — JEDDAH",
   "hero": {
     "titlePrefix": "One contract,",

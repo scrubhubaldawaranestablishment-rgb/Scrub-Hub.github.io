@@ -59,7 +59,17 @@ Use the integration files from base44-integration/ in the repo as reference.
 
 ---
 
-## Files to add in Base44 Code view
+## Replace brand assets
+
+The first build used a temporary CSS logo because the original Base44 assets were not exported.
+
+To restore your exact branding, replace these files with the originals from your Base44 project:
+
+- `public/nossco-logo.svg` (or `.png`)
+- `public/vision-2030-logo.svg` (use the official Arabic version for RTL if available)
+
+In Base44 Code view, upload the same files to your app's `public/` folder.
+
 
 | File | Purpose |
 |------|---------|
