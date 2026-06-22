@@ -1,37 +1,30 @@
 # Nossco Nexxus — Arabic RTL Login Deployment
 
-## Status
+## Status: LIVE
 
-Arabic RTL login support has been applied in the **Nossco Nexxus** Base44 app (`6a1ae5a11195cab07d9a51af`).
+Arabic RTL login support is **live** on `https://portal.nosscogroup.com/login` (bundle `index-CUy4oXd2.js`).
 
-### Completed in Base44 editor
+### What shipped
 
 - `pages/Login.jsx` — uses `useT()` + `useAppSettings()`, RTL layout, language toggle
 - `lib/AppSettingsContext.jsx` — detects Arabic from `localStorage` or browser language
-- `lib/translations_en.js` / `lib/translations_ar.js` — login page strings added
+- `lib/translations_en.js` / `lib/translations_ar.js` — login page strings
 - **Logo unchanged:** `https://nosscogroup.com/assets/nossco_logo.png` and Vision 2030 image
+- **NOSSCO brand text unchanged** — only descriptive copy is translated
 
-### Pending: production publish
+### Verify
 
-`https://portal.nosscogroup.com` is still serving bundle `index-CruyXS-h.js` (old login page).
-
-The editor account `scrubhubaldawaranestablishment@gmail.com` can edit code but **Publish** appears to require the workspace owner:
-
-**info@nosscogroup.com**
-
-## To go live
-
-1. Sign in to [Base44](https://app.base44.com) as workspace owner (`info@nosscogroup.com`)
-2. Open **Nossco Nexxus** app
-3. Click **Build**, then **Publish**
-4. Visit `https://portal.nosscogroup.com/login`
-5. Click **العربية** in the top corner to verify Arabic RTL
-
-## Verify after publish
+1. Visit `https://portal.nosscogroup.com/login`
+2. Click **العربية** in the top corner — page flips to RTL with Arabic copy
+3. Click **English** to switch back
 
 ```bash
 curl -sL https://portal.nosscogroup.com/login | rg 'index-[^"]+\.js'
-curl -sL https://portal.nosscogroup.com/assets/<bundle>.js | rg 'login_headline_1'
+curl -sL https://portal.nosscogroup.com/assets/index-CUy4oXd2.js | rg 'login_headline_1'
 ```
 
-The second command should return `login_headline_1` when the new login is live.
+## Base44 app
+
+- App: **Nossco Nexxus** (`6a1ae5a11195cab07d9a51af`)
+- Workspace: **Info's Workspace**
+- Published via Base44 **Publish** button (Preview tab)
