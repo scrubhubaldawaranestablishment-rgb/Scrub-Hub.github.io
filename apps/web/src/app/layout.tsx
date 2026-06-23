@@ -1,25 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
 export const metadata: Metadata = {
-  title: "VidEdge - All-In-One Tool For Faceless Creators",
-  description: "Scripts, thumbnails, AI video editor, channel analytics, and production board — every tool you need to grow a faceless channel.",
+  title: "CreatorPilot AI — Automated Faceless Shorts & TikTok",
+  description:
+    "AI-powered SaaS to automatically manage faceless YouTube Shorts and TikTok channels targeting US viewers.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
-      <body className="min-h-full font-sans antialiased bg-white text-slate-900">{children}</body>
+    <html lang="en">
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
