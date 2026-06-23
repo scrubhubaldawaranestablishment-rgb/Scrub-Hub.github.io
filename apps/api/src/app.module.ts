@@ -13,6 +13,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminModule } from './admin/admin.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -22,11 +23,16 @@ import { FeedbackModule } from './feedback/feedback.module';
     }),
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          url: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const url = config.get<string>('REDIS_URL', 'redis://localhost:6379');
+        return {
+          connection: {
+            url,
+            maxRetriesPerRequest: null,
+            ...(url.startsWith('rediss://') ? { tls: {} } : {}),
+          },
+        };
+      },
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
@@ -40,6 +46,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     AnalyticsModule,
     AdminModule,
     FeedbackModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

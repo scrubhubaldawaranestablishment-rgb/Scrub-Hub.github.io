@@ -1,30 +1,21 @@
-# Vercel Deployment
+# Vercel Deployment (Frontend)
 
-## One-click deploy (recommended)
+CreatorPilot uses **Vercel for the frontend** and **Railway for the API**.
 
-1. Go to **[vercel.com/new](https://vercel.com/new)**
-2. Import repo: `scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io`
-3. Set **Root Directory** → `apps/web`
-4. Add **Environment Variables**:
-   - `YOUTUBE_API_KEY` = your YouTube Data API key
-   - `OPENAI_API_KEY` = your OpenAI API key
-5. Click **Deploy**
+See the full guide: **[DEPLOY.md](../../DEPLOY.md)** (repo root)
 
-## CLI deploy
+## Quick Vercel setup
 
-```bash
-cd apps/web
-npm install -g vercel
-vercel login
-vercel --prod
-```
+1. Import repo at [vercel.com/new](https://vercel.com/new)
+2. Set **Root Directory** → `apps/web`
+3. Add environment variable:
+   - `API_PROXY_TARGET` = your Railway API URL (e.g. `https://creatorpilot-api-production.up.railway.app`)
+4. Deploy
 
-When prompted, add the same environment variables in the Vercel dashboard under **Settings → Environment Variables**.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fscrubhubaldawaranestablishment-rgb%2FScrub-Hub.github.io&project-name=creatorpilot-ai&root-directory=apps%2Fweb)
 
 ## After deploy
 
-Your app will be live at `https://your-project.vercel.app`
-
-- Homepage: `/`
-- Dashboard: `/dashboard/extension`
-- Settings: `/dashboard/settings`
+- Homepage: `https://your-app.vercel.app`
+- Login: `https://your-app.vercel.app/login`
+- Dashboard: `https://your-app.vercel.app/dashboard`
