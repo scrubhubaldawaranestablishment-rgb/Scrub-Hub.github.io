@@ -5,6 +5,7 @@ watchPatterns = [
   "apps/api/**",
   "packages/database/**",
   "Dockerfile",
+  ".dockerignore",
   "scripts/**",
   "package.json",
   "package-lock.json"
