@@ -26,7 +26,10 @@ If Railway shows **"Config Error"** and suggests setting Root Directory to `apps
 4. Go to **Settings** → **Build**
 5. Set **Builder** to **Dockerfile**
 6. Set **Dockerfile path** to `Dockerfile`
-7. Click **Redeploy** on the latest deployment
+7. Ensure the service deploys from the **`main`** branch (merged 2026-06-23)
+8. Click **Redeploy** on the latest deployment
+
+> Railway should auto-redeploy from `main` after the merge. If the build still uses Railpack, manually switch Builder to **Dockerfile** in Settings → Build.
 
 ## Required databases
 
