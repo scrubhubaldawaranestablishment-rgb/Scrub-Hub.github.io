@@ -44,7 +44,20 @@ creatorpilot-ai/
 15. **AI Feedback Loop** — Continuous content quality improvement
 16. **Admin Dashboard** — System overview, users, content status
 
-## Quick Start
+## Production Deployment
+
+See **[DEPLOY.md](./DEPLOY.md)** for the full guide.
+
+| Service | Platform | Purpose |
+|---------|----------|---------|
+| Frontend | [Vercel](https://vercel.com) | Next.js dashboard |
+| API + DB + Redis | [Railway](https://railway.app) | NestJS backend |
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fscrubhubaldawaranestablishment-rgb%2FScrub-Hub.github.io&project-name=creatorpilot-ai&root-directory=apps%2Fweb)
+
+After deploying the API on Railway, set `API_PROXY_TARGET` in Vercel to your Railway URL.
+
+## Quick Start (Local)
 
 ### Prerequisites
 

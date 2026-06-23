@@ -16,11 +16,20 @@ async function bootstrap() {
   );
 
   const config = app.get(ConfigService);
-  const port = config.get<number>('API_PORT', 4000);
+  const port = Number(process.env.PORT || config.get('API_PORT', 4000));
   const corsOrigin = config.get<string>('CORS_ORIGIN', 'http://localhost:3000');
+  const origins = corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+
+  // Allow Vercel preview and production URLs when deployed
+  if (process.env.VERCEL_URL) {
+    origins.push(`https://${process.env.VERCEL_URL}`);
+  }
+  if (process.env.FRONTEND_URL) {
+    origins.push(process.env.FRONTEND_URL);
+  }
 
   app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
+    origin: origins.length ? origins : true,
     credentials: true,
   });
 

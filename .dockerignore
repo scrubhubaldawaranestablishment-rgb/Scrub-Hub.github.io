@@ -1,0 +1,9 @@
+# Railway builds the NestJS API from the repo root Dockerfile.
+# Do NOT set Root Directory to apps/web — that is for Vercel only.
+
+apps/web
+apps/web/**
+node_modules
+.git
+**/.next
+**/dist
