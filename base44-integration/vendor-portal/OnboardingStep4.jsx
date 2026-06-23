@@ -331,14 +331,14 @@ export default function OnboardingStep4({ docs: initialDocs, setDocs, vendorId, 
             submission_date: nowISO,
             reference_number: refNumber,
             company_name: vendorName || vendor?.company_name || '',
-            contact_person: vendor?.contact_name || '',
+            contact_person: vendor?.contact_person || vendor?.contact_name || '',
           });
         } else {
           await base44.entities.VendorApplication.create({
             vendor_id: vendorId,
             vendor_email: vendor?.contact_email || '',
             company_name: vendorName || vendor?.company_name || '',
-            contact_person: vendor?.contact_name || '',
+            contact_person: vendor?.contact_person || vendor?.contact_name || '',
             application_status: 'documents_submitted',
             documents_submitted: true,
             submission_date: nowISO,

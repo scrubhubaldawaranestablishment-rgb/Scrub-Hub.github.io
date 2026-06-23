@@ -36,3 +36,16 @@ export function phoneLocalPart(value) {
   const normalized = normalizeSaPhone(value);
   return normalized.replace(SA_PHONE_PREFIX, '').replace(/\D/g, '');
 }
+
+/** Map legacy draft field names to Vendor entity schema. */
+export function normalizeVendorFormFields(data) {
+  if (!data) return data;
+  const out = { ...data };
+  if (!out.contact_person && out.contact_name) {
+    out.contact_person = out.contact_name;
+  }
+  if (!out.phone && out.contact_phone) {
+    out.phone = out.contact_phone;
+  }
+  return out;
+}

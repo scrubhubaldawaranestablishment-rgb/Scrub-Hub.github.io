@@ -8,6 +8,7 @@ import {
   digitFieldStyle,
   isDigitFieldValid,
   normalizeSaPhone,
+  normalizeVendorFormFields,
   phoneLocalPart,
 } from '@/lib/vendorFormUtils';
 
@@ -54,17 +55,18 @@ function PhoneInput({ value, onChange, placeholder, isRTL }) {
 
 export default function OnboardingStep1({ data, onChange }) {
   const { t, lang, isRTL } = useTranslation();
-  const set = (k, v) => onChange({ ...data, [k]: v });
+  const fields = normalizeVendorFormFields(data);
+  const set = (k, v) => onChange(normalizeVendorFormFields({ ...fields, [k]: v }));
 
-  const crDigits = digitsOnly(data.cr_number, CR_DIGIT_LENGTH);
-  const vatDigits = digitsOnly(data.vat_number, VAT_DIGIT_LENGTH);
+  const crDigits = digitsOnly(fields.cr_number, CR_DIGIT_LENGTH);
+  const vatDigits = digitsOnly(fields.vat_number, VAT_DIGIT_LENGTH);
   const crInvalid = crDigits.length > 0 && crDigits.length !== CR_DIGIT_LENGTH;
   const vatInvalid = vatDigits.length > 0 && vatDigits.length !== VAT_DIGIT_LENGTH;
   const crError = t('CR must be exactly 10 digits');
   const vatError = t('VAT must be exactly 15 digits');
 
-  const phoneValue = normalizeSaPhone(data.contact_phone);
-  const whatsappValue = normalizeSaPhone(data.whatsapp);
+  const phoneValue = normalizeSaPhone(fields.phone);
+  const whatsappValue = normalizeSaPhone(fields.whatsapp);
 
   return (
     <div className="space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -79,7 +81,7 @@ export default function OnboardingStep1({ data, onChange }) {
           <input
             className={inputCls}
             style={inputStyle}
-            value={data.company_name || ''}
+            value={fields.company_name || ''}
             onChange={(e) => set('company_name', e.target.value)}
             placeholder="ACME Services Co."
             dir={isRTL ? 'rtl' : 'ltr'}
@@ -113,7 +115,7 @@ export default function OnboardingStep1({ data, onChange }) {
           <input
             className={inputCls}
             style={inputStyle}
-            value={data.website || ''}
+            value={fields.website || ''}
             onChange={(e) => set('website', e.target.value)}
             placeholder="https://example.com"
             dir="ltr"
@@ -123,8 +125,8 @@ export default function OnboardingStep1({ data, onChange }) {
           <input
             className={inputCls}
             style={inputStyle}
-            value={data.contact_name || ''}
-            onChange={(e) => set('contact_name', e.target.value)}
+            value={fields.contact_person || ''}
+            onChange={(e) => set('contact_person', e.target.value)}
             placeholder="Ahmed Al-Rashid"
             dir={isRTL ? 'rtl' : 'ltr'}
           />
@@ -134,7 +136,7 @@ export default function OnboardingStep1({ data, onChange }) {
             type="email"
             className={inputCls}
             style={inputStyle}
-            value={data.contact_email || ''}
+            value={fields.contact_email || ''}
             onChange={(e) => set('contact_email', e.target.value)}
             placeholder="contact@company.com"
             dir="ltr"
@@ -143,7 +145,7 @@ export default function OnboardingStep1({ data, onChange }) {
         <Field label={t('Phone')} isRTL={isRTL}>
           <PhoneInput
             value={phoneValue}
-            onChange={(v) => set('contact_phone', v)}
+            onChange={(v) => set('phone', v)}
             placeholder="5x xxx xxxx"
             isRTL={isRTL}
           />
@@ -160,11 +162,11 @@ export default function OnboardingStep1({ data, onChange }) {
           <CitiesCoveredSelector
             value={(() => {
               try {
-                return typeof data.cities_covered === 'string'
-                  ? JSON.parse(data.cities_covered)
-                  : data.cities_covered;
+                return typeof fields.cities_covered === 'string'
+                  ? JSON.parse(fields.cities_covered)
+                  : fields.cities_covered;
               } catch {
-                return data.cities_covered;
+                return fields.cities_covered;
               }
             })()}
             onChange={(v) => set('cities_covered', typeof v === 'string' ? v : JSON.stringify(v))}
@@ -176,8 +178,13 @@ export default function OnboardingStep1({ data, onChange }) {
             min="0"
             className={inputCls}
             style={inputStyle}
-            value={data.years_in_operation || ''}
-            onChange={(e) => set('years_in_operation', Number(e.target.value))}
+            value={fields.years_in_operation ?? ''}
+            onChange={(e) =>
+              set(
+                'years_in_operation',
+                e.target.value === '' ? '' : Number(e.target.value)
+              )
+            }
             placeholder="5"
             dir="ltr"
           />
@@ -188,11 +195,13 @@ export default function OnboardingStep1({ data, onChange }) {
 }
 
 export function isStep1Valid(data, userEmail) {
-  const cr = digitsOnly(data.cr_number, CR_DIGIT_LENGTH);
-  const vat = digitsOnly(data.vat_number, VAT_DIGIT_LENGTH);
+  const fields = normalizeVendorFormFields(data);
+  const cr = digitsOnly(fields.cr_number, CR_DIGIT_LENGTH);
+  const vat = digitsOnly(fields.vat_number, VAT_DIGIT_LENGTH);
   return !!(
-    data.company_name &&
-    (data.contact_email || userEmail) &&
+    fields.company_name &&
+    fields.contact_person &&
+    (fields.contact_email || userEmail) &&
     isDigitFieldValid(cr, CR_DIGIT_LENGTH) &&
     isDigitFieldValid(vat, VAT_DIGIT_LENGTH)
   );

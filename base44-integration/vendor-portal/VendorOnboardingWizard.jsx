@@ -18,6 +18,7 @@ import {
   hasVendorDraft,
 } from '@/lib/vendorDraftStorage';
 import { useTranslation } from '@/lib/useTranslation';
+import { normalizeVendorFormFields } from '@/lib/vendorFormUtils';
 
 const STEP_KEYS = [
   { num: 1, labelKey: 'ob_step_company' },
@@ -96,10 +97,11 @@ export default function VendorOnboardingWizard({ vendor, docs, user, isInternalU
   }, [vendor?.id, docs, isInternalUser, startStep, userEmail]);
 
   const persistToServer = useCallback(async (data, nextStep, { createIfMissing = true } = {}) => {
+    const normalized = normalizeVendorFormFields(data);
     const payload = {
-      contact_email: userEmail || data.contact_email || '',
-      ...data,
-      onboarding_step: Math.max(nextStep, data.onboarding_step || 1),
+      contact_email: userEmail || normalized.contact_email || '',
+      ...normalized,
+      onboarding_step: Math.max(nextStep, normalized.onboarding_step || 1),
     };
 
     const existingId = vendorIdRef.current;

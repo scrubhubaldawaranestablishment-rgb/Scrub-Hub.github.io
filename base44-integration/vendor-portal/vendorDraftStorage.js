@@ -2,6 +2,8 @@
  * Client-side draft backup for the vendor onboarding wizard.
  */
 
+import { normalizeVendorFormFields } from './vendorFormUtils';
+
 const DRAFT_PREFIX = 'nossco-vendor-draft-';
 const TAB_PREFIX = 'nossco-vendor-tab-';
 const STEP_PREFIX = 'nossco-vendor-step-';
@@ -59,7 +61,7 @@ export function hasVendorDraft(email) {
   const draft = loadVendorDraft(email);
   if (!draft?.formData) return false;
   const d = draft.formData;
-  return !!(d.company_name || d.cr_number || d.sectors?.length || d.onboarding_step > 1 || draft.step > 1);
+  return !!(d.company_name || d.cr_number || d.contact_person || d.contact_name || d.sectors?.length || d.onboarding_step > 1 || draft.step > 1);
 }
 
 export function saveVendorTab(email, tab) {
@@ -84,15 +86,19 @@ export function loadVendorStep(email) {
 }
 
 export function mergeVendorData(serverVendor, draft, userEmail) {
-  const base = serverVendor || (userEmail ? { contact_email: userEmail } : {});
+  const base = normalizeVendorFormFields(
+    serverVendor || (userEmail ? { contact_email: userEmail } : {})
+  );
   if (!draft?.formData) return base;
+
+  const draftData = normalizeVendorFormFields(draft.formData);
 
   if (serverVendor?.id) {
     // Server wins for saved fields, draft fills gaps
-    return { ...draft.formData, ...serverVendor };
+    return normalizeVendorFormFields({ ...draftData, ...serverVendor });
   }
 
-  return { ...base, ...draft.formData };
+  return normalizeVendorFormFields({ ...base, ...draftData });
 }
 
 export function getResumeStep(serverVendor, docs, draft, isInternalUser) {
