@@ -1,10 +1,11 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (include all workspace package.json for npm ci)
 COPY package.json package-lock.json ./
 COPY packages/database/package.json ./packages/database/
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
 RUN npm ci --workspace=@creatorpilot/api --workspace=@creatorpilot/database --include-workspace-root
 
 # Copy source

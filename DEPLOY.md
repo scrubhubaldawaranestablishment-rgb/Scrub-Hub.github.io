@@ -18,7 +18,13 @@ Vercel cannot run the NestJS API or background job workers — those go on Railw
 1. Go to **[railway.app](https://railway.app)** and sign in with GitHub
 2. Click **New Project** → **Deploy from GitHub repo**
 3. Select this repository
-4. Railway will detect the `Dockerfile` at the repo root
+4. **Important — Railway dashboard settings for the API service:**
+   - **Root Directory:** leave **empty** (repo root `/`) — **NOT** `apps/web`
+   - **Builder:** `Dockerfile` (not Railpack/Nixpacks)
+   - **Dockerfile path:** `Dockerfile`
+5. Railway will use `railway.toml` / `railway.json` at the repo root automatically
+
+> **If you see "Config Error" suggesting `apps/web`:** ignore that — `apps/web` is the Next.js frontend for **Vercel only**. The API builds from the root `Dockerfile`.
 
 ### 2. Add PostgreSQL
 
