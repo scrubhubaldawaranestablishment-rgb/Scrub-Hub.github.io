@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+// Use same-origin /api proxy (see next.config.ts rewrites) so login works
+// when the app is opened via port-forward or preview URLs, not only localhost.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export interface User {
   id: string;
