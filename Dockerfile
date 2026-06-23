@@ -1,4 +1,5 @@
 FROM node:20-alpine AS base
+# CreatorPilot API production image (Railway)
 WORKDIR /app
 
 # Install dependencies (include all workspace package.json for npm ci)
