@@ -1,0 +1,108 @@
+{
+  "name": "WorkOrder",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "assigned",
+        "in_progress",
+        "review",
+        "completed",
+        "cancelled"
+      ],
+      "default": "created"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "vendor_id": {
+      "type": "string"
+    },
+    "vendor_name": {
+      "type": "string"
+    },
+    "ticket_id": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": "string"
+    },
+    "scheduled_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scheduled_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actual_completion": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sla_deadline": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sla_breached": {
+      "type": "boolean",
+      "default": false
+    },
+    "completion_percentage": {
+      "type": "number",
+      "default": 0
+    },
+    "location": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["manual", "rfp", "client_portal"],
+      "default": "manual",
+      "description": "Origin of this work order"
+    },
+    "rfp_ref": {
+      "type": "string",
+      "description": "Client RFP reference number"
+    },
+    "rfp_file_url": {
+      "type": "string",
+      "description": "URL of uploaded client RFP document"
+    },
+    "vendor_match_data": {
+      "type": "string",
+      "description": "JSON array of AI vendor match results"
+    },
+    "vendor_match_ran_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "title",
+    "priority"
+  ]
+}
