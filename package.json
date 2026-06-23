@@ -17,6 +17,7 @@
     "db:studio": "npm run studio --workspace=@creatorpilot/database"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "vercel": "^54.15.1"
   }
 }
