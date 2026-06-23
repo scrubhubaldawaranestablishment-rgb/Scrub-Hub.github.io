@@ -18,6 +18,19 @@ A personal-use clone of [VidEdge](https://videdge.ai/) — the all-in-one tool f
 | 💰 Monetize | Revenue calculator & monetization strategies |
 | 🎓 AI Coach | Caleb AI chat for YouTube growth advice |
 
+## Deploy to Vercel (live)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fscrubhubaldawaranestablishment-rgb%2FScrub-Hub.github.io&project-name=videdge-personal&root-directory=apps%2Fweb)
+
+1. Click **Deploy** above (or [open Vercel import](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fscrubhubaldawaranestablishment-rgb%2FScrub-Hub.github.io&project-name=videdge-personal&root-directory=apps%2Fweb))
+2. Set **Root Directory** → `apps/web` (if not auto-filled)
+3. Add environment variables:
+   - `YOUTUBE_API_KEY`
+   - `OPENAI_API_KEY`
+4. Click **Deploy**
+
+Your live URL will be `https://videdge-personal.vercel.app` (or similar).
+
 ## Getting Started
 
 ```bash
