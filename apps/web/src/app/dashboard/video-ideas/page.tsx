@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { generateVideoIdeas } from "@/lib/ai";
+import { generateAI, useSettingsStore } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
+import { v4 as uuid } from "uuid";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Lightbulb, ArrowRight } from "lucide-react";
@@ -10,14 +12,38 @@ import { Lightbulb, ArrowRight } from "lucide-react";
 export default function VideoIdeasPage() {
   const [niche, setNiche] = useState("Fitness");
   const [loading, setLoading] = useState(false);
+  const { openaiApiKey } = useSettingsStore();
   const { videoIdeas, addVideoIdeas } = useAppStore();
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (openaiApiKey) {
+        const content = await generateAI(
+          `Generate 5 scored YouTube video ideas for the "${niche}" niche. Return JSON array only: [{"title":"...","hook":"...","score":85}]`,
+          "ideas",
+          openaiApiKey
+        );
+        const parsed = JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
+        const ideas = (Array.isArray(parsed) ? parsed : []).map((item: { title: string; hook: string; score: number }) => ({
+          id: uuid(),
+          title: item.title,
+          hook: item.hook,
+          score: item.score,
+          niche,
+          createdAt: new Date().toISOString(),
+        }));
+        if (ideas.length > 0) addVideoIdeas(ideas);
+        else addVideoIdeas(generateVideoIdeas(niche, 5));
+      } else {
+        await new Promise((r) => setTimeout(r, 800));
+        addVideoIdeas(generateVideoIdeas(niche, 5));
+      }
+    } catch {
       addVideoIdeas(generateVideoIdeas(niche, 5));
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const getScoreColor = (score: number) => {

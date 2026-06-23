@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { generateCoachResponse } from "@/lib/ai";
+import { generateAI, useSettingsStore } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
 import { v4 as uuid } from "uuid";
 import { Send, GraduationCap } from "lucide-react";
@@ -16,6 +17,7 @@ const SUGGESTIONS = [
 
 export default function AICoachPage() {
   const { coachMessages, addCoachMessage } = useAppStore();
+  const { openaiApiKey } = useSettingsStore();
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,7 +37,7 @@ export default function AICoachPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [coachMessages, typing]);
 
-  const handleSend = (text?: string) => {
+  const handleSend = async (text?: string) => {
     const message = text || input.trim();
     if (!message) return;
 
@@ -43,15 +45,25 @@ export default function AICoachPage() {
     setInput("");
     setTyping(true);
 
-    setTimeout(() => {
+    try {
+      let response: string;
+      if (openaiApiKey) {
+        response = await generateAI(message, "coach", openaiApiKey);
+      } else {
+        await new Promise((r) => setTimeout(r, 600));
+        response = generateCoachResponse(message);
+      }
+      addCoachMessage({ id: uuid(), role: "assistant", content: response, timestamp: new Date().toISOString() });
+    } catch {
       addCoachMessage({
         id: uuid(),
         role: "assistant",
         content: generateCoachResponse(message),
         timestamp: new Date().toISOString(),
       });
+    } finally {
       setTyping(false);
-    }, 800 + Math.random() * 700);
+    }
   };
 
   return (

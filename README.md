@@ -44,6 +44,25 @@ npm start
 - **@dnd-kit** (Kanban drag-and-drop)
 - **Web Speech API** (voiceover)
 
+## API Keys (for full functionality)
+
+Go to **Dashboard → Settings** or set environment variables:
+
+| Key | Purpose | Required? |
+|-----|---------|-----------|
+| `YOUTUBE_API_KEY` | Channel analytics, video lists, outlier scores | Recommended (video URLs work without it) |
+| `OPENAI_API_KEY` | AI Script Writer, Coach, Branding, Video Ideas | Optional (templates used without it) |
+
+### YouTube API setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a project and enable **YouTube Data API v3**
+3. Create an API key and paste it in Settings
+4. Free tier: 10,000 units/day
+
+### Supported YouTube URLs
+- Video: `youtube.com/watch?v=...`, `youtu.be/...`
+- Channel: `youtube.com/@handle`, `youtube.com/channel/ID`
+
 ## Personal Use
 
 This is built for personal use — no authentication, no billing, no API keys required. All AI features use intelligent client-side generation. Data persists in browser localStorage.

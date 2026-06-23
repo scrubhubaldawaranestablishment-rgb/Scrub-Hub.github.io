@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { generateBrandingAssets } from "@/lib/ai";
+import { generateAI, useSettingsStore } from "@/lib/api-client";
 import { Send } from "lucide-react";
 
 interface Message {
@@ -17,10 +18,13 @@ export default function BrandingPage() {
   const [assets, setAssets] = useState<ReturnType<typeof generateBrandingAssets> | null>(null);
   const [channelName, setChannelName] = useState("");
 
-  const handleSend = () => {
+  const { openaiApiKey } = useSettingsStore();
+
+  const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = input.trim();
     setMessages((m) => [...m, { role: "user", content: userMsg }]);
+    setInput("");
 
     const nameMatch = userMsg.match(/called\s+"?([^"]+)"?/i) || userMsg.match(/channel\s+(\w+)/i);
     const name = nameMatch?.[1] || "My Channel";
@@ -32,20 +36,24 @@ export default function BrandingPage() {
     const styleMatch = userMsg.match(/(bold|minimal|vibrant|dark)/i);
     const style = styleMatch?.[1]?.toLowerCase() || "bold";
 
-    const generated = generateBrandingAssets(name, niche, style);
-    setAssets(generated);
-
-    setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: `I've created a ${style} brand identity for "${name}"!\n\n**Profile Picture:** ${generated.profileDescription}\n\n**Banner:** ${generated.bannerDescription}\n\n**Color Palette:** ${generated.colorPalette.join(", ")}\n\nCheck the preview on the right. You can download or regenerate with a different style.`,
-        },
-      ]);
-    }, 600);
-
-    setInput("");
+    try {
+      let assistantContent: string;
+      if (openaiApiKey) {
+        assistantContent = await generateAI(userMsg, "branding", openaiApiKey);
+        const generated = generateBrandingAssets(name, niche, style);
+        setAssets(generated);
+      } else {
+        await new Promise((r) => setTimeout(r, 600));
+        const generated = generateBrandingAssets(name, niche, style);
+        setAssets(generated);
+        assistantContent = `I've created a ${style} brand identity for "${name}"!\n\n**Profile Picture:** ${generated.profileDescription}\n\n**Banner:** ${generated.bannerDescription}\n\n**Color Palette:** ${generated.colorPalette.join(", ")}\n\nCheck the preview on the right.`;
+      }
+      setMessages((m) => [...m, { role: "assistant", content: assistantContent }]);
+    } catch {
+      const generated = generateBrandingAssets(name, niche, style);
+      setAssets(generated);
+      setMessages((m) => [...m, { role: "assistant", content: `Created a ${style} brand for "${name}". Check the preview on the right.` }]);
+    }
   };
 
   return (

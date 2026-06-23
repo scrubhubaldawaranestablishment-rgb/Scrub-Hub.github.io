@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { generateScript } from "@/lib/ai";
+import { generateAI, useSettingsStore } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
 import { v4 as uuid } from "uuid";
 import { FileText, Copy, Check } from "lucide-react";
@@ -16,17 +17,41 @@ function ScriptWriterContent() {
   const [sections, setSections] = useState<ReturnType<typeof generateScript>>([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { openaiApiKey } = useSettingsStore();
   const { addScript } = useAppStore();
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!title.trim()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (openaiApiKey) {
+        const content = await generateAI(
+          `Write a complete YouTube script for a faceless "${niche}" channel video titled "${title}". Use sections: Hook, Introduction, Main Point 1, Main Point 2, Main Point 3, Call to Action. Include B-roll cues and pattern interrupts.`,
+          "script",
+          openaiApiKey
+        );
+        const sectionTitles = ["Hook", "Introduction", "Main Point 1", "Main Point 2", "Main Point 3", "Call to Action"];
+        const parts = content.split(/#{1,3}\s+/).filter(Boolean);
+        const generated = sectionTitles.map((sectionTitle, i) => ({
+          id: uuid(),
+          title: sectionTitle,
+          content: parts[i]?.replace(/^(Hook|Introduction|Main Point \d|Call to Action)[:\s]*/i, "").trim() || content,
+        }));
+        setSections(generated);
+        addScript({ id: uuid(), title, niche, sections: generated, createdAt: new Date().toISOString() });
+      } else {
+        await new Promise((r) => setTimeout(r, 1000));
+        const generated = generateScript(title, niche);
+        setSections(generated);
+        addScript({ id: uuid(), title, niche, sections: generated, createdAt: new Date().toISOString() });
+      }
+    } catch {
       const generated = generateScript(title, niche);
       setSections(generated);
       addScript({ id: uuid(), title, niche, sections: generated, createdAt: new Date().toISOString() });
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   const handleCopy = () => {

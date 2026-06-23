@@ -61,8 +61,11 @@ export function DashboardSidebar() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
-          <Link href="/" className="text-sm text-slate-500 hover:text-slate-700">
+        <div className="p-4 border-t border-slate-100 space-y-2">
+          <Link href="/dashboard/settings" className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 px-2">
+            ⚙️ Settings
+          </Link>
+          <Link href="/" className="block text-sm text-slate-500 hover:text-slate-700 px-2">
             ← Back to Home
           </Link>
         </div>
