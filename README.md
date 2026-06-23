@@ -1,81 +1,128 @@
-# VidEdge Personal Edition
+# CreatorPilot AI
 
-A personal-use clone of [VidEdge](https://videdge.ai/) — the all-in-one tool for faceless YouTube creators. All 11 tools included, no pricing or subscription required.
+AI-powered SaaS to automatically manage faceless YouTube Shorts and TikTok channels targeting United States viewers.
 
-## Features
+## Architecture
 
-| Tool | Description |
-|------|-------------|
-| 🧩 Chrome Extension | YouTube channel analytics, outlier scores, monetization checker |
-| 🔍 Niche Finder | Browse 12+ high-performing faceless channel database |
-| 🎨 Branding | AI chat to generate channel profile & banner concepts |
-| 💡 Video Ideas | Scored video ideas with hooks, one-click to script |
-| 🖼️ Thumbnail Studio | Canva-style canvas editor with AI generation |
-| ✍️ AI Script Writer | Section-by-section script generation |
-| 🎙️ AI Voiceover | Text-to-speech with Web Speech API |
-| 🎬 AI Video Editor | Scene-based timeline editor with video generation |
-| 📋 Production Board | Kanban drag-and-drop workflow |
-| 💰 Monetize | Revenue calculator & monetization strategies |
-| 🎓 AI Coach | Caleb AI chat for YouTube growth advice |
-
-## Deploy to Vercel (live)
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fscrubhubaldawaranestablishment-rgb%2FScrub-Hub.github.io&project-name=videdge-personal&root-directory=apps%2Fweb)
-
-1. Click **Deploy** above (or [open Vercel import](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fscrubhubaldawaranestablishment-rgb%2FScrub-Hub.github.io&project-name=videdge-personal&root-directory=apps%2Fweb))
-2. Set **Root Directory** → `apps/web` (if not auto-filled)
-3. Add environment variables:
-   - `YOUTUBE_API_KEY`
-   - `OPENAI_API_KEY`
-4. Click **Deploy**
-
-Your live URL will be `https://videdge-personal.vercel.app` (or similar).
-
-## Getting Started
-
-```bash
-cd apps/web
-npm install
-npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000)
-
-## Production
-
-```bash
-cd apps/web
-npm run build
-npm start
+creatorpilot-ai/
+├── apps/
+│   ├── api/          # NestJS backend (auth, AI, scheduling, integrations)
+│   └── web/          # Next.js 15 frontend (dashboard, admin)
+├── packages/
+│   └── database/     # Prisma schema & PostgreSQL client
+└── docker-compose.yml
 ```
 
 ## Tech Stack
 
-- **Next.js 16** (App Router)
-- **Tailwind CSS 4**
-- **Zustand** (persisted local storage)
-- **@dnd-kit** (Kanban drag-and-drop)
-- **Web Speech API** (voiceover)
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15, TypeScript, TailwindCSS, ShadCN UI |
+| Backend | NestJS, TypeScript |
+| Database | PostgreSQL, Prisma ORM |
+| Queue | Redis, BullMQ |
+| AI | OpenAI API (gpt-4o-mini) |
+| Integrations | YouTube Data API v3, TikTok Content Posting API |
 
-## API Keys (for full functionality)
+## Features
 
-Go to **Dashboard → Settings** or set environment variables:
+1. **Authentication** — JWT-based auth with session management
+2. **Channel Setup Wizard** — 5-step onboarding for niche, tone, platforms
+3. **AI Trend Research Agent** — Viral topic discovery for US audiences
+4. **30-Day Content Calendar** — Auto-generated posting schedule
+5. **Hook Generator** — Scroll-stopping opening lines
+6. **Script Generator** — 45-60 second Shorts/TikTok scripts
+7. **CTA Generator** — Conversion-optimized calls to action
+8. **Description Generator** — Platform-specific SEO descriptions
+9. **Thumbnail Prompt Generator** — AI image generation prompts
+10. **Video Prompt Generator** — Scene-by-scene video AI prompts
+11. **Content Scheduling** — BullMQ-powered publish queue
+12. **YouTube API Integration** — Shorts upload & analytics
+13. **TikTok API Integration** — Video publishing & metrics
+14. **Analytics Dashboard** — Cross-platform performance tracking
+15. **AI Feedback Loop** — Continuous content quality improvement
+16. **Admin Dashboard** — System overview, users, content status
 
-| Key | Purpose | Required? |
-|-----|---------|-----------|
-| `YOUTUBE_API_KEY` | Channel analytics, video lists, outlier scores | Recommended (video URLs work without it) |
-| `OPENAI_API_KEY` | AI Script Writer, Coach, Branding, Video Ideas | Optional (templates used without it) |
+## Quick Start
 
-### YouTube API setup
-1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Create a project and enable **YouTube Data API v3**
-3. Create an API key and paste it in Settings
-4. Free tier: 10,000 units/day
+### Prerequisites
 
-### Supported YouTube URLs
-- Video: `youtube.com/watch?v=...`, `youtu.be/...`
-- Channel: `youtube.com/@handle`, `youtube.com/channel/ID`
+- Node.js 20+
+- Docker (for PostgreSQL & Redis)
 
-## Personal Use
+### 1. Start infrastructure
 
-This is built for personal use — no authentication, no billing, no API keys required. All AI features use intelligent client-side generation. Data persists in browser localStorage.
+```bash
+docker compose up -d
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+# Edit .env with your OPENAI_API_KEY and platform credentials
+```
+
+### 3. Install & setup database
+
+```bash
+npm install
+npm run db:generate
+npm run db:push
+npm run db:seed --workspace=@creatorpilot/database
+```
+
+### 4. Run development servers
+
+```bash
+npm run dev
+```
+
+- Frontend: http://localhost:3000
+- API: http://localhost:4000/api
+
+### Demo Accounts
+
+| Email | Password | Role |
+|-------|----------|------|
+| demo@creatorpilot.ai | demo123 | User |
+| admin@creatorpilot.ai | admin123 | Admin |
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /api/auth/register | Create account |
+| POST | /api/auth/login | Sign in |
+| GET | /api/channels | List user channels |
+| POST | /api/ai/channels/:id/trends | Research trends |
+| POST | /api/ai/channels/:id/calendar | Generate 30-day calendar |
+| POST | /api/ai/content/:id/generate | Generate specific asset |
+| POST | /api/ai/content/:id/generate-all | Full content pipeline |
+| POST | /api/scheduling/channels/:id | Schedule a post |
+| GET | /api/analytics/channels/:id | Analytics dashboard |
+| GET | /api/admin/overview | Admin system overview |
+
+## Environment Variables
+
+See `.env.example` for the full list. Key variables:
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `REDIS_URL` — Redis connection for BullMQ
+- `OPENAI_API_KEY` — OpenAI API key for content generation
+- `JWT_SECRET` — Secret for JWT token signing
+- `YOUTUBE_API_KEY` / `YOUTUBE_CLIENT_ID` — YouTube integration
+- `TIKTOK_CLIENT_KEY` — TikTok integration
+
+## Production
+
+```bash
+npm run build
+npm run start --workspace=@creatorpilot/api
+npm run start --workspace=@creatorpilot/web
+```
+
+## License
+
+Private — CreatorPilot AI

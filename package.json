@@ -1,0 +1,22 @@
+{
+  "name": "creatorpilot-ai",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace=@creatorpilot/api",
+    "dev:web": "npm run dev --workspace=@creatorpilot/web",
+    "build": "npm run build --workspace=@creatorpilot/database && npm run build --workspace=@creatorpilot/api && npm run build --workspace=@creatorpilot/web",
+    "db:generate": "npm run generate --workspace=@creatorpilot/database",
+    "db:migrate": "npm run migrate --workspace=@creatorpilot/database",
+    "db:push": "npm run push --workspace=@creatorpilot/database",
+    "db:studio": "npm run studio --workspace=@creatorpilot/database"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

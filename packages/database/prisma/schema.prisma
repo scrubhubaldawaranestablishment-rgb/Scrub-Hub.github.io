@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Platform {
+  YOUTUBE
+  TIKTOK
+}
+
+enum ContentStatus {
+  DRAFT
+  GENERATING
+  READY
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum AssetType {
+  TREND_RESEARCH
+  HOOK
+  SCRIPT
+  CTA
+  DESCRIPTION
+  THUMBNAIL_PROMPT
+  VIDEO_PROMPT
+  CALENDAR_ENTRY
+}
+
+enum PostStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  role         UserRole  @default(USER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  channels     Channel[]
+  sessions     Session[]
+  feedback     AiFeedback[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Channel {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  niche       String
+  targetAudience String @default("United States")
+  tone        String   @default("engaging")
+  postingFrequency String @default("daily")
+  platforms   Platform[] @default([YOUTUBE, TIKTOK])
+  wizardStep  Int      @default(0)
+  wizardComplete Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platformConnections PlatformConnection[]
+  trendResearch     TrendResearch[]
+  contentCalendars  ContentCalendar[]
+  contentItems      ContentItem[]
+  scheduledPosts    ScheduledPost[]
+  analyticsSnapshots AnalyticsSnapshot[]
+
+  @@index([userId])
+}
+
+model PlatformConnection {
+  id           String   @id @default(cuid())
+  channelId    String
+  platform     Platform
+  externalId   String?
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  metadata     Json?
+  connected    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, platform])
+  @@index([channelId])
+}
+
+model TrendResearch {
+  id          String   @id @default(cuid())
+  channelId   String
+  query       String?
+  trends      Json
+  summary     String   @db.Text
+  recommendations Json?
+  createdAt   DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+}
+
+model ContentCalendar {
+  id          String   @id @default(cuid())
+  channelId   String
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  days        Int      @default(30)
+  entries     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  channel      Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+
+  @@index([channelId])
+}
+
+model ContentItem {
+  id          String        @id @default(cuid())
+  channelId   String
+  calendarId  String?
+  title       String
+  topic       String?
+  scheduledFor DateTime?
+  status      ContentStatus @default(DRAFT)
+  platforms   Platform[]    @default([YOUTUBE, TIKTOK])
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  channel       Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  calendar      ContentCalendar? @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  generatedAssets GeneratedAsset[]
+  scheduledPosts  ScheduledPost[]
+  analyticsEvents AnalyticsEvent[]
+  feedback        AiFeedback[]
+
+  @@index([channelId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+model GeneratedAsset {
+  id            String    @id @default(cuid())
+  contentItemId String
+  type          AssetType
+  content       String    @db.Text
+  metadata      Json?
+  version       Int       @default(1)
+  createdAt     DateTime  @default(now())
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([contentItemId])
+  @@index([type])
+}
+
+model ScheduledPost {
+  id            String     @id @default(cuid())
+  channelId     String
+  contentItemId String
+  platform      Platform
+  scheduledAt   DateTime
+  status        PostStatus @default(PENDING)
+  externalPostId String?
+  errorMessage  String?
+  publishedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+model AnalyticsSnapshot {
+  id          String   @id @default(cuid())
+  channelId   String
+  platform    Platform
+  date        DateTime @db.Date
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  comments    Int      @default(0)
+  shares      Int      @default(0)
+  watchTime   Int      @default(0)
+  subscribers Int      @default(0)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, platform, date])
+  @@index([channelId])
+}
+
+model AnalyticsEvent {
+  id            String   @id @default(cuid())
+  contentItemId String
+  platform      Platform
+  eventType     String
+  value         Float?
+  metadata      Json?
+  recordedAt    DateTime @default(now())
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([contentItemId])
+}
+
+model AiFeedback {
+  id            String   @id @default(cuid())
+  userId        String
+  contentItemId String?
+  rating        Int
+  comment       String?  @db.Text
+  suggestions   Json?
+  applied       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([contentItemId])
+}
+
+model JobLog {
+  id        String   @id @default(cuid())
+  jobId     String
+  queue     String
+  name      String
+  status    String
+  payload   Json?
+  result    Json?
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([queue])
+  @@index([jobId])
+}
