@@ -46,8 +46,8 @@ In the **API service** → **Variables**, add:
 | `JWT_SECRET` | Long random string (e.g. `openssl rand -hex 32`) |
 | `JWT_EXPIRES_IN` | `7d` |
 | `CORS_ORIGIN` | Your Vercel URL (set after Step 2), e.g. `https://creatorpilot.vercel.app` |
-| `OPENAI_API_KEY` | Your OpenAI key *(add later when ready)* |
-| `OPENAI_MODEL` | `gpt-4o-mini` |
+| `GEMINI_API_KEY` | Your Google Gemini key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `GEMINI_MODEL` | `gemini-2.0-flash` (default) |
 
 `DATABASE_URL` and `REDIS_URL` come from the Railway database plugins.
 
@@ -126,7 +126,7 @@ When you have credentials, add them in **Railway** (API service variables):
 
 | Variable | Purpose |
 |----------|---------|
-| `OPENAI_API_KEY` | AI content generation |
+| `GEMINI_API_KEY` | AI content generation (Google Gemini) |
 | `YOUTUBE_API_KEY` | YouTube analytics |
 | `YOUTUBE_CLIENT_ID` | YouTube OAuth upload |
 | `YOUTUBE_CLIENT_SECRET` | YouTube OAuth upload |
@@ -161,7 +161,7 @@ Railway API (NestJS)
 |---------|-----|
 | **Failed to fetch** on login | Set `API_PROXY_TARGET` in Vercel to your Railway URL (no trailing slash, no `/api`) |
 | CORS errors | Set `CORS_ORIGIN` in Railway to your exact Vercel URL |
-| AI returns templates only | Add `OPENAI_API_KEY` in Railway |
+| AI returns templates only | Add `GEMINI_API_KEY` in Railway |
 | Build fails on Vercel | Confirm **Root Directory** is `apps/web` |
 | API won't start | Check `DATABASE_URL` and `REDIS_URL` are linked in Railway |
 

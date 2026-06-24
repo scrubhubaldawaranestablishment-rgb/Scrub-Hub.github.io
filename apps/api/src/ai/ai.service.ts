@@ -2,14 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { AssetType, ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChannelsService } from '../channels/channels.service';
-import { OpenAiService } from './openai.service';
+import { GeminiService } from './gemini.service';
 
 @Injectable()
 export class AiService {
   constructor(
     private prisma: PrismaService,
     private channelsService: ChannelsService,
-    private openai: OpenAiService,
+    private gemini: GeminiService,
   ) {}
 
   private async getChannelContext(channelId: string, userId: string) {
@@ -24,7 +24,7 @@ export class AiService {
 
   async researchTrends(channelId: string, userId: string, query?: string) {
     const ctx = await this.getChannelContext(channelId, userId);
-    const result = await this.openai.researchTrends(ctx, query);
+    const result = await this.gemini.researchTrends(ctx, query);
 
     return this.prisma.trendResearch.create({
       data: {
@@ -39,7 +39,7 @@ export class AiService {
 
   async generateCalendar(channelId: string, userId: string, days = 30) {
     const ctx = await this.getChannelContext(channelId, userId);
-    const result = await this.openai.generateCalendar(ctx, days);
+    const result = await this.gemini.generateCalendar(ctx, days);
 
     const startDate = new Date();
     const endDate = new Date();
@@ -109,34 +109,34 @@ export class AiService {
 
     switch (type) {
       case AssetType.HOOK:
-        result = await this.openai.generateHook(ctx, item.topic || item.title);
+        result = await this.gemini.generateHook(ctx, item.topic || item.title);
         content = JSON.stringify(result);
         break;
       case AssetType.SCRIPT: {
         const hookAsset = item.generatedAssets.find((a) => a.type === AssetType.HOOK);
         const hookData = hookAsset ? JSON.parse(hookAsset.content) : null;
         const hook = options?.hook || hookData?.hooks?.[0]?.text || item.title;
-        result = await this.openai.generateScript(ctx, item.topic || item.title, hook);
+        result = await this.gemini.generateScript(ctx, item.topic || item.title, hook);
         content = JSON.stringify(result);
         break;
       }
       case AssetType.CTA:
-        result = await this.openai.generateCta(ctx, item.topic || item.title);
+        result = await this.gemini.generateCta(ctx, item.topic || item.title);
         content = JSON.stringify(result);
         break;
       case AssetType.DESCRIPTION:
-        result = await this.openai.generateDescription(ctx, item.title, item.topic || item.title);
+        result = await this.gemini.generateDescription(ctx, item.title, item.topic || item.title);
         content = JSON.stringify(result);
         break;
       case AssetType.THUMBNAIL_PROMPT:
-        result = await this.openai.generateThumbnailPrompt(ctx, item.title);
+        result = await this.gemini.generateThumbnailPrompt(ctx, item.title);
         content = JSON.stringify(result);
         break;
       case AssetType.VIDEO_PROMPT: {
         const scriptAsset = item.generatedAssets.find((a) => a.type === AssetType.SCRIPT);
         const scriptData = scriptAsset ? JSON.parse(scriptAsset.content) : null;
         const script = scriptData?.fullScript || item.title;
-        result = await this.openai.generateVideoPrompt(ctx, script);
+        result = await this.gemini.generateVideoPrompt(ctx, script);
         content = JSON.stringify(result);
         break;
       }

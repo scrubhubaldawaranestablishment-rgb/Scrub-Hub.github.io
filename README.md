@@ -74,7 +74,7 @@ docker compose up -d
 
 ```bash
 cp .env.example .env
-# Edit .env with your OPENAI_API_KEY and platform credentials
+# Edit .env with your GEMINI_API_KEY and platform credentials
 ```
 
 ### 3. Install & setup database
@@ -123,7 +123,8 @@ See `.env.example` for the full list. Key variables:
 
 - `DATABASE_URL` — PostgreSQL connection string
 - `REDIS_URL` — Redis connection for BullMQ
-- `OPENAI_API_KEY` — OpenAI API key for content generation
+- `GEMINI_API_KEY` — Google Gemini API key for content generation ([get one free](https://aistudio.google.com/apikey))
+- `GEMINI_MODEL` — Gemini model (default: `gemini-2.0-flash`)
 - `JWT_SECRET` — Secret for JWT token signing
 - `YOUTUBE_API_KEY` / `YOUTUBE_CLIENT_ID` — YouTube integration
 - `TIKTOK_CLIENT_KEY` — TikTok integration

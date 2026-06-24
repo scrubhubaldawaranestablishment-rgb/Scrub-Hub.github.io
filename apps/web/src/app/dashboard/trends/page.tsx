@@ -50,7 +50,7 @@ export default function TrendsPage() {
   }
 
   const display = latest || trends[0];
-  const isDemoSummary = display?.summary?.includes("OPENAI_API_KEY");
+  const isDemoSummary = display?.summary?.includes("GEMINI_API_KEY");
 
   return (
     <div className="space-y-8">
@@ -110,7 +110,7 @@ export default function TrendsPage() {
                 ) : (
                   <Badge variant="success" className="gap-1">
                     <Sparkles className="w-3 h-3" />
-                    AI powered
+                    Gemini AI
                   </Badge>
                 )}
               </div>

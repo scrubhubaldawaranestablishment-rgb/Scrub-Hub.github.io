@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface ChannelContext {
   name: string;
@@ -20,26 +20,36 @@ export interface TrendResearchResult {
   trends: TrendItem[];
   summary: string;
   recommendations: string[];
-  source: 'openai' | 'demo';
+  source: 'gemini' | 'demo';
 }
 
 @Injectable()
-export class OpenAiService {
-  private readonly logger = new Logger(OpenAiService.name);
-  private client: OpenAI;
-  private model: string;
+export class GeminiService {
+  private readonly logger = new Logger(GeminiService.name);
+  private readonly model: string;
 
   constructor(private config: ConfigService) {
-    this.client = new OpenAI({
-      apiKey: this.config.get<string>('OPENAI_API_KEY', ''),
-    });
-    this.model = this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini');
+    this.model = this.config.get<string>('GEMINI_MODEL', 'gemini-2.0-flash');
+  }
+
+  private getApiKey(): string {
+    return (
+      this.config.get<string>('GEMINI_API_KEY', '')?.trim() ||
+      this.config.get<string>('GOOGLE_API_KEY', '')?.trim() ||
+      ''
+    );
   }
 
   private hasValidApiKey(): boolean {
-    const key = this.config.get<string>('OPENAI_API_KEY', '')?.trim() ?? '';
+    const key = this.getApiKey();
     if (!key) return false;
-    const placeholders = ['sk-your-openai-key', 'your-openai-key', 'sk-xxx', 'changeme'];
+    const placeholders = [
+      'your-gemini-api-key',
+      'your-google-api-key',
+      'your-api-key',
+      'changeme',
+      'xxx',
+    ];
     return !placeholders.some((p) => key.toLowerCase().includes(p));
   }
 
@@ -49,19 +59,20 @@ export class OpenAiService {
     }
 
     try {
-      const response = await this.client.chat.completions.create({
+      const genAI = new GoogleGenerativeAI(this.getApiKey());
+      const model = genAI.getGenerativeModel({
         model: this.model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        temperature: 0.8,
-        response_format: { type: 'json_object' },
+        systemInstruction: system,
+        generationConfig: {
+          temperature: 0.8,
+          responseMimeType: 'application/json',
+        },
       });
 
-      return response.choices[0]?.message?.content || null;
+      const result = await model.generateContent(user);
+      return result.response.text() || null;
     } catch (error) {
-      this.logger.warn(`OpenAI request failed: ${error instanceof Error ? error.message : error}`);
+      this.logger.warn(`Gemini request failed: ${error instanceof Error ? error.message : error}`);
       return null;
     }
   }
@@ -100,7 +111,7 @@ export class OpenAiService {
         query
           ? `Focused on "${query}" — these topics are trending in US Shorts/TikTok this week.`
           : 'Top viral angles detected for faceless short-form content in your niche.'
-      } Add OPENAI_API_KEY on Railway for GPT-powered research.`,
+      } Add GEMINI_API_KEY on Railway for Gemini-powered research.`,
       trends: [
         {
           topic: `${focus}: the 60-second explainer format`,
@@ -135,7 +146,7 @@ export class OpenAiService {
         {
           topic: `POV: you finally understand ${focus}`,
           virality: 76,
-          reason: 'POV format trending on TikTok; pairs well with ${ctx.tone} tone',
+          reason: `POV format trending on TikTok; pairs well with ${ctx.tone} tone`,
           hashtags: ['#pov', `#${tag}`, '#relatable', '#tiktok'],
         },
       ],
@@ -160,7 +171,7 @@ Include at least 5 trends with realistic virality scores and US-focused hashtags
     if (raw) {
       const parsed = this.parseJson<Omit<TrendResearchResult, 'source'>>(raw);
       if (parsed && this.isTrendResearchResult(parsed)) {
-        return { ...parsed, source: 'openai' };
+        return { ...parsed, source: 'gemini' };
       }
     }
 
