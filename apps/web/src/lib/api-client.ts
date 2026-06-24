@@ -227,7 +227,16 @@ class ApiClient {
 
   // Integrations
   getIntegrationAuth(platform: string, channelId: string) {
-    return this.request<{ url: string }>(`/integrations/${platform}/auth/${channelId}`);
+    return this.request<{ url: string | null; configured: boolean }>(
+      `/integrations/${platform}/auth/${channelId}`,
+    );
+  }
+
+  demoConnectIntegration(platform: string, channelId: string) {
+    return this.request<{ success: boolean; platform: string; demo: boolean }>(
+      `/integrations/${platform}/demo-connect/${channelId}`,
+      { method: "POST" },
+    );
   }
 
   // Feedback

@@ -9,11 +9,30 @@ export class YoutubeService {
     private prisma: PrismaService,
   ) {}
 
+  isConfigured() {
+    return Boolean(
+      this.config.get('YOUTUBE_CLIENT_ID') && this.config.get('YOUTUBE_REDIRECT_URI'),
+    );
+  }
+
   getAuthUrl(channelId: string) {
+    if (!this.isConfigured()) return null;
     const clientId = this.config.get('YOUTUBE_CLIENT_ID');
     const redirectUri = this.config.get('YOUTUBE_REDIRECT_URI');
     const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly');
     return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri || '')}&response_type=code&scope=${scope}&state=${channelId}&access_type=offline`;
+  }
+
+  async demoConnect(channelId: string) {
+    await this.prisma.platformConnection.update({
+      where: { channelId_platform: { channelId, platform: 'YOUTUBE' } },
+      data: {
+        connected: true,
+        accessToken: `yt_demo_${Date.now()}`,
+        metadata: { connectedAt: new Date().toISOString(), demo: true },
+      },
+    });
+    return { success: true, platform: 'YOUTUBE', demo: true };
   }
 
   async handleCallback(code: string, channelId: string) {
