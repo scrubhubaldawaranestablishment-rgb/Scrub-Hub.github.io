@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { AssetType, ContentStatus } from '@prisma/client';
+import { AssetType, ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChannelsService } from '../channels/channels.service';
 import { OpenAiService } from './openai.service';
@@ -29,10 +29,10 @@ export class AiService {
     return this.prisma.trendResearch.create({
       data: {
         channelId,
-        query,
-        trends: result.trends,
+        query: query || null,
+        trends: result.trends as unknown as Prisma.InputJsonValue,
         summary: result.summary,
-        recommendations: result.recommendations,
+        recommendations: result.recommendations as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -52,7 +52,7 @@ export class AiService {
         startDate,
         endDate,
         days,
-        entries: result.entries,
+        entries: result.entries as Prisma.InputJsonValue,
       },
     });
 
