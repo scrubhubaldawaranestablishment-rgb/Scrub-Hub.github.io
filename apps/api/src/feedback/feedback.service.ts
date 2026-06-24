@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OpenAiService } from '../ai/openai.service';
 import { CreateFeedbackDto } from './dto/feedback.dto';
@@ -32,7 +33,7 @@ export class FeedbackService {
 
     await this.prisma.aiFeedback.update({
       where: { id: feedback.id },
-      data: { suggestions: insights },
+      data: { suggestions: insights as Prisma.InputJsonValue },
     });
 
     return { feedback, insights };

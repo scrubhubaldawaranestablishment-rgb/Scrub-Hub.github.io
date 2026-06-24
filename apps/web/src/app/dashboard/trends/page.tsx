@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Search, Loader2 } from "lucide-react";
+import { TrendingUp, Search, Loader2, Sparkles, AlertCircle } from "lucide-react";
 
 export default function TrendsPage() {
   const { activeChannel } = useAppStore();
@@ -15,6 +15,7 @@ export default function TrendsPage() {
   const [trends, setTrends] = useState<TrendResearch[]>([]);
   const [loading, setLoading] = useState(false);
   const [latest, setLatest] = useState<TrendResearch | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeChannel) {
@@ -25,22 +26,31 @@ export default function TrendsPage() {
   async function handleResearch() {
     if (!activeChannel) return;
     setLoading(true);
+    setError(null);
     try {
       const result = await api.researchTrends(activeChannel.id, query || undefined);
       setLatest(result);
       setTrends((prev) => [result, ...prev]);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Research failed");
+      setError(err instanceof Error ? err.message : "Research failed. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   if (!activeChannel) {
-    return <p className="text-slate-500">Select or create a channel first.</p>;
+    return (
+      <Card>
+        <CardContent className="pt-6 flex items-center gap-3 text-slate-500">
+          <AlertCircle className="w-5 h-5" />
+          Select or create a channel first from the Setup page.
+        </CardContent>
+      </Card>
+    );
   }
 
   const display = latest || trends[0];
+  const isDemoSummary = display?.summary?.includes("OPENAI_API_KEY");
 
   return (
     <div className="space-y-8">
@@ -53,27 +63,57 @@ export default function TrendsPage() {
       </div>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-3">
           <div className="flex gap-3">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !loading && handleResearch()}
               placeholder="Optional: focus area (e.g., 'morning routines')"
               className="flex-1"
+              disabled={loading}
             />
             <Button onClick={handleResearch} disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               <span className="ml-2">{loading ? "Researching..." : "Research Trends"}</span>
             </Button>
           </div>
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {loading && !display && (
+        <Card>
+          <CardContent className="pt-6 flex items-center gap-3 text-slate-500">
+            <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+            Scanning viral trends for {activeChannel.niche}...
+          </CardContent>
+        </Card>
+      )}
 
       {display && (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Summary</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle>Summary</CardTitle>
+                {isDemoSummary ? (
+                  <Badge variant="secondary" className="gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Live demo data
+                  </Badge>
+                ) : (
+                  <Badge variant="success" className="gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    AI powered
+                  </Badge>
+                )}
+              </div>
               <CardDescription>Latest research for {activeChannel.niche}</CardDescription>
             </CardHeader>
             <CardContent>
