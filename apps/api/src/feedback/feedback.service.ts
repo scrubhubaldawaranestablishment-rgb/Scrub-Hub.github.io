@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { OpenAiService } from '../ai/openai.service';
+import { GeminiService } from '../ai/gemini.service';
 import { CreateFeedbackDto } from './dto/feedback.dto';
 
 @Injectable()
 export class FeedbackService {
   constructor(
     private prisma: PrismaService,
-    private openai: OpenAiService,
+    private gemini: GeminiService,
   ) {}
 
   async create(userId: string, dto: CreateFeedbackDto) {
@@ -27,7 +27,7 @@ export class FeedbackService {
       take: 20,
     });
 
-    const insights = await this.openai.generateFeedbackInsights(
+    const insights = await this.gemini.generateFeedbackInsights(
       recentFeedback.map((f) => ({ rating: f.rating, comment: f.comment || undefined })),
     );
 

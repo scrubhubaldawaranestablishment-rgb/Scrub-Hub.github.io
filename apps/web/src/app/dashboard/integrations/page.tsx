@@ -111,7 +111,8 @@ export default function IntegrationsPage() {
               "YOUTUBE_CLIENT_SECRET",
               "TIKTOK_CLIENT_KEY",
               "TIKTOK_CLIENT_SECRET",
-              "OPENAI_API_KEY",
+              "GEMINI_API_KEY",
+              "GEMINI_MODEL",
             ].map((key) => (
               <div key={key} className="flex items-center justify-between p-2 rounded bg-slate-50">
                 <span>{key}</span>
