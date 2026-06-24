@@ -9,11 +9,30 @@ export class TiktokService {
     private prisma: PrismaService,
   ) {}
 
+  isConfigured() {
+    return Boolean(
+      this.config.get('TIKTOK_CLIENT_KEY') && this.config.get('TIKTOK_REDIRECT_URI'),
+    );
+  }
+
   getAuthUrl(channelId: string) {
+    if (!this.isConfigured()) return null;
     const clientKey = this.config.get('TIKTOK_CLIENT_KEY');
     const redirectUri = this.config.get('TIKTOK_REDIRECT_URI');
     const scope = 'user.info.basic,video.publish,video.upload';
     return `https://www.tiktok.com/v2/auth/authorize?client_key=${clientKey}&scope=${scope}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri || '')}&state=${channelId}`;
+  }
+
+  async demoConnect(channelId: string) {
+    await this.prisma.platformConnection.update({
+      where: { channelId_platform: { channelId, platform: 'TIKTOK' } },
+      data: {
+        connected: true,
+        accessToken: `tt_demo_${Date.now()}`,
+        metadata: { connectedAt: new Date().toISOString(), demo: true },
+      },
+    });
+    return { success: true, platform: 'TIKTOK', demo: true };
   }
 
   async handleCallback(code: string, channelId: string) {
