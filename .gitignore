@@ -1,8 +1,12 @@
 node_modules/
 dist/
 .next/
+__pycache__/
+*.pyc
 .env
 .env.local
+google-credentials.json
+**/google-credentials.json
 *.log
 .DS_Store
 dump.rdb
