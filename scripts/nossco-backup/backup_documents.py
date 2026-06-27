@@ -2,47 +2,42 @@
 """
 NOSSCO Nexxus document backup script.
 
-Fetches compliance document records from Supabase (nossco-core-ops-staging),
-downloads files from Supabase Storage or legacy URLs, decodes Base64 payloads
-when present, and uploads them to a date-stamped Google Drive subfolder using
-streaming I/O to limit memory use.
+Fetches ComplianceDocument records directly from Base44, downloads files
+from file_url, and uploads them to a date-stamped Google Drive subfolder.
 
-Confirmed Supabase project:
-  URL:   https://dilknptetrnicoilhfmb.supabase.co
-  Table: compliance_documents
-  Files: storage_path + bucket (primary), legacy_file_url (fallback)
+Primary backup route: Base44 -> Google Drive (no Supabase required).
 
 Required environment variables:
-  SUPABASE_SERVICE_ROLE_KEY Service role key (recommended for backups)
+  BASE44_API_TOKEN          Base44 API token (or Base44_API_Token)
+  GOOGLE_CREDENTIALS_FILE   Service account JSON path (default: google-credentials.json)
 
 Optional environment variables:
-  SUPABASE_URL              Default: https://dilknptetrnicoilhfmb.supabase.co
-  SUPABASE_TABLE            Default: compliance_documents
-  GOOGLE_CREDENTIALS_FILE   Path to service account JSON (default: google-credentials.json)
-  GOOGLE_DRIVE_FOLDER_ID    Target shared folder ID
+  BASE44_APP_ID             Default: 6a1ae5a11195cab07d9a51af (NOSSCO Nexxus)
+  BASE44_ENTITY             Default: ComplianceDocument
+  BASE44_API_BASE           Default: https://base44.app/api/apps
+  GOOGLE_DRIVE_FOLDER_ID    Default: 1saHGqanqHjrapVHUv0WaJ15cmuQcil0N
   BACKUP_CHUNK_SIZE         Stream chunk size in bytes (default: 262144)
   BACKUP_DRY_RUN            Set to "1" to list actions without uploading
   BACKUP_MANIFEST           Set to "0" to skip manifest.json upload (default: upload)
 
 Usage:
   pip install -r scripts/nossco-backup/requirements.txt
-  export SUPABASE_SERVICE_ROLE_KEY=...
-  export GOOGLE_DRIVE_FOLDER_ID=1saHGqanqHjrapVHUV0WaJ15cmuQcil0N
-  python scripts/nossco-backup/backup_documents.py
+  export BASE44_API_TOKEN=...
+  export GOOGLE_DRIVE_FOLDER_ID=1saHGqanqHjrapVHUv0WaJ15cmuQcil0N
+  python3 scripts/nossco-backup/backup_documents.py
 """
 
 from __future__ import annotations
 
-import binascii
 import json
 import logging
 import mimetypes
 import os
 import re
 import sys
-import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from io import BytesIO
 from pathlib import Path
 from typing import Any, BinaryIO, Iterator, Mapping, Optional
 from urllib.parse import urlparse
@@ -52,32 +47,21 @@ from dotenv import load_dotenv
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-from supabase import Client, create_client
 
 load_dotenv()
 
 LOG = logging.getLogger("nossco-backup")
 
-DEFAULT_TABLE = "compliance_documents"
-DEFAULT_SUPABASE_URL = "https://dilknptetrnicoilhfmb.supabase.co"
+DEFAULT_APP_ID = "6a1ae5a11195cab07d9a51af"
+DEFAULT_ENTITY = "ComplianceDocument"
+DEFAULT_API_BASE = "https://base44.app/api/apps"
 DEFAULT_CREDENTIALS = "google-credentials.json"
-DEFAULT_DRIVE_FOLDER = "1saHGqanqHjrapVHUV0WaJ15cmuQcil0N"
+DEFAULT_DRIVE_FOLDER = "1saHGqanqHjrapVHUv0WaJ15cmuQcil0N"
 DEFAULT_CHUNK_SIZE = 256 * 1024
-DEFAULT_STORAGE_BUCKET = "compliance_documents"
-
-# Columns checked for embedded Base64 payloads (first match wins).
-BASE64_FIELD_CANDIDATES = (
-    "file_base64",
-    "file_data",
-    "content_base64",
-    "base64_content",
-    "document_base64",
-    "file_content",
-)
 
 URL_FIELD_CANDIDATES = (
-    "legacy_file_url",
     "file_url",
+    "legacy_file_url",
     "document_url",
     "url",
     "storage_url",
@@ -95,32 +79,26 @@ METADATA_FIELDS = (
     "verification_status",
     "issue_date",
     "expiry_date",
-    "created_at",
-    "updated_at",
-    "storage_path",
-    "bucket",
-    "legacy_file_url",
-    "original_filename",
-    "mime_type",
-    "size_bytes",
-    "legacy_base44_id",
+    "created_date",
+    "updated_date",
+    "file_url",
 )
 
 
 @dataclass(frozen=True)
 class DocumentSource:
-    kind: str  # "storage" | "url" | "base64"
+    kind: str  # "url"
     value: str
-    bucket: Optional[str] = None
     mime_type: Optional[str] = None
     filename_hint: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class BackupConfig:
-    supabase_url: str
-    supabase_key: str
-    table_name: str
+    base44_app_id: str
+    base44_entity: str
+    base44_api_base: str
+    base44_token: str
     credentials_file: Path
     drive_folder_id: str
     chunk_size: int
@@ -136,8 +114,6 @@ class HTTPStreamReader:
         self._iterator: Iterator[bytes] = response.iter_content(chunk_size=chunk_size)
         self._buffer = b""
         self._closed = False
-        content_length = response.headers.get("Content-Length")
-        self.size = int(content_length) if content_length else None
 
     def read(self, size: int = -1) -> bytes:
         if self._closed:
@@ -162,23 +138,22 @@ class HTTPStreamReader:
                 self._buffer += chunk
 
         result, self._buffer = self._buffer[:size], self._buffer[size:]
-        if self._closed and not self._buffer:
-            return result
         return result
 
     def close(self) -> None:
         self._closed = True
-        if hasattr(self._iterator, "close"):
-            self._iterator.close()  # type: ignore[attr-defined]
 
 
 def parse_config() -> BackupConfig:
-    supabase_url = os.getenv("SUPABASE_URL", DEFAULT_SUPABASE_URL).strip()
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-    if not supabase_key:
+    base44_token = (
+        os.getenv("BASE44_API_TOKEN")
+        or os.getenv("Base44_API_Token")
+        or os.getenv("BASE44_API_KEY")
+        or ""
+    ).strip()
+    if not base44_token:
         raise SystemExit(
-            "Missing SUPABASE_SERVICE_ROLE_KEY. "
-            "Copy the service role key from Supabase Dashboard -> Project Settings -> API."
+            "Missing BASE44_API_TOKEN. Set your Base44 API token from the dashboard."
         )
 
     credentials_file = Path(
@@ -186,18 +161,18 @@ def parse_config() -> BackupConfig:
     ).expanduser()
     drive_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID", DEFAULT_DRIVE_FOLDER).strip()
     chunk_size = int(os.getenv("BACKUP_CHUNK_SIZE", str(DEFAULT_CHUNK_SIZE)))
-    dry_run = os.getenv("BACKUP_DRY_RUN", "").strip() in {"1", "true", "True", "yes"}
-    upload_manifest = os.getenv("BACKUP_MANIFEST", "1").strip() not in {
+    dry_run = os.getenv("BACKUP_DRY_RUN", "").strip().lower() in {"1", "true", "yes"}
+    upload_manifest = os.getenv("BACKUP_MANIFEST", "1").strip().lower() not in {
         "0",
         "false",
-        "False",
         "no",
     }
 
     return BackupConfig(
-        supabase_url=supabase_url,
-        supabase_key=supabase_key,
-        table_name=os.getenv("SUPABASE_TABLE", DEFAULT_TABLE).strip(),
+        base44_app_id=os.getenv("BASE44_APP_ID", DEFAULT_APP_ID).strip(),
+        base44_entity=os.getenv("BASE44_ENTITY", DEFAULT_ENTITY).strip(),
+        base44_api_base=os.getenv("BASE44_API_BASE", DEFAULT_API_BASE).strip().rstrip("/"),
+        base44_token=base44_token,
         credentials_file=credentials_file,
         drive_folder_id=drive_folder_id,
         chunk_size=chunk_size,
@@ -236,59 +211,6 @@ def guess_extension(
     return ".bin"
 
 
-def normalize_base64_payload(raw_value: str) -> tuple[str, Optional[str]]:
-    value = raw_value.strip()
-    mime_type = None
-    if value.startswith("data:"):
-        header, _, payload = value.partition(",")
-        if ";" in header:
-            mime_type = header[5:].split(";", 1)[0] or None
-        value = payload
-    return value, mime_type
-
-
-def spool_base64_to_tempfile(
-    encoded: str,
-    chunk_size: int,
-) -> tuple[Path, int, Optional[str]]:
-    payload, mime_type = normalize_base64_payload(encoded)
-    payload = re.sub(r"\s+", "", payload)
-
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        temp_path = Path(tmp.name)
-        total = 0
-        # Base64 decode must respect 4-character alignment.
-        carry = ""
-        for idx in range(0, len(payload), chunk_size):
-            segment = carry + payload[idx : idx + chunk_size]
-            usable = len(segment) - (len(segment) % 4)
-            if usable == 0:
-                carry = segment
-                continue
-            to_decode = segment[:usable]
-            carry = segment[usable:]
-            try:
-                decoded = binascii.a2b_base64(to_decode.encode("ascii"))
-            except binascii.Error as exc:
-                tmp.close()
-                temp_path.unlink(missing_ok=True)
-                raise ValueError(f"Invalid Base64 payload: {exc}") from exc
-            tmp.write(decoded)
-            total += len(decoded)
-
-        if carry:
-            try:
-                decoded = binascii.a2b_base64(carry.encode("ascii"))
-            except binascii.Error as exc:
-                tmp.close()
-                temp_path.unlink(missing_ok=True)
-                raise ValueError(f"Invalid Base64 payload tail: {exc}") from exc
-            tmp.write(decoded)
-            total += len(decoded)
-
-    return temp_path, total, mime_type
-
-
 def first_present(record: Mapping[str, Any], keys: tuple[str, ...]) -> Optional[Any]:
     lowered = {str(k).lower(): v for k, v in record.items()}
     for key in keys:
@@ -301,40 +223,23 @@ def first_present(record: Mapping[str, Any], keys: tuple[str, ...]) -> Optional[
 
 
 def resolve_document_source(record: Mapping[str, Any]) -> Optional[DocumentSource]:
-    storage_path = first_present(record, ("storage_path",))
-    bucket = first_present(record, ("bucket",)) or DEFAULT_STORAGE_BUCKET
+    file_url = first_present(record, URL_FIELD_CANDIDATES)
+    if not isinstance(file_url, str) or not file_url.strip():
+        return None
+    if file_url.strip().startswith("https://example.com"):
+        return None
+
     mime_type = first_present(record, ("mime_type",))
     filename_hint = first_present(record, ("original_filename", "file_name", "filename"))
-    if isinstance(storage_path, str) and storage_path.strip():
-        return DocumentSource(
-            kind="storage",
-            value=storage_path.strip(),
-            bucket=str(bucket),
-            mime_type=str(mime_type) if mime_type else None,
-            filename_hint=str(filename_hint) if filename_hint else Path(storage_path).name,
-        )
+    if not filename_hint:
+        filename_hint = Path(urlparse(file_url).path).name
 
-    for field in BASE64_FIELD_CANDIDATES:
-        raw = first_present(record, (field,))
-        if isinstance(raw, str) and raw.strip():
-            _, detected_mime = normalize_base64_payload(raw)
-            return DocumentSource(
-                kind="base64",
-                value=raw,
-                mime_type=detected_mime or (str(mime_type) if mime_type else None),
-                filename_hint=str(filename_hint) if filename_hint else None,
-            )
-
-    file_url = first_present(record, URL_FIELD_CANDIDATES)
-    if isinstance(file_url, str) and file_url.strip():
-        return DocumentSource(
-            kind="url",
-            value=file_url.strip(),
-            mime_type=str(mime_type) if mime_type else None,
-            filename_hint=str(filename_hint) if filename_hint else Path(urlparse(file_url).path).name,
-        )
-
-    return None
+    return DocumentSource(
+        kind="url",
+        value=file_url.strip(),
+        mime_type=str(mime_type) if mime_type else None,
+        filename_hint=str(filename_hint) if filename_hint else None,
+    )
 
 
 def build_drive_service(credentials_file: Path):
@@ -352,11 +257,7 @@ def build_drive_service(credentials_file: Path):
     return build("drive", "v3", credentials=credentials, cache_discovery=False)
 
 
-def find_child_folder(
-    drive_service,
-    parent_id: str,
-    folder_name: str,
-) -> Optional[str]:
+def find_child_folder(drive_service, parent_id: str, folder_name: str) -> Optional[str]:
     escaped = folder_name.replace("'", "\\'")
     query = (
         f"'{parent_id}' in parents and "
@@ -365,7 +266,13 @@ def find_child_folder(
     )
     response = (
         drive_service.files()
-        .list(q=query, fields="files(id,name)", pageSize=1, supportsAllDrives=True, includeItemsFromAllDrives=True)
+        .list(
+            q=query,
+            fields="files(id,name)",
+            pageSize=1,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+        )
         .execute()
     )
     files = response.get("files", [])
@@ -427,42 +334,6 @@ def upload_stream(
     return file_id
 
 
-def create_signed_storage_url(client: Client, bucket: str, storage_path: str) -> str:
-    result = client.storage.from_(bucket).create_signed_url(storage_path, 3600)
-    if isinstance(result, dict):
-        signed = result.get("signedURL") or result.get("signedUrl") or result.get("signed_url")
-        if isinstance(signed, str) and signed:
-            return signed
-    raise ValueError(f"Could not create signed URL for {bucket}/{storage_path}: {result!r}")
-
-
-def upload_from_supabase_storage(
-    client: Client,
-    drive_service,
-    folder_id: str,
-    filename: str,
-    bucket: str,
-    storage_path: str,
-    mime_type: str,
-    chunk_size: int,
-    dry_run: bool,
-) -> Optional[str]:
-    if dry_run:
-        LOG.info("[dry-run] Would download and upload %s from %s/%s", filename, bucket, storage_path)
-        return None
-
-    signed_url = create_signed_storage_url(client, bucket, storage_path)
-    return upload_from_url(
-        drive_service,
-        folder_id,
-        filename,
-        signed_url,
-        mime_type,
-        chunk_size,
-        dry_run=False,
-    )
-
-
 def upload_from_url(
     drive_service,
     folder_id: str,
@@ -494,72 +365,30 @@ def upload_from_url(
             reader.close()
 
 
-def upload_from_base64(
-    drive_service,
-    folder_id: str,
-    filename: str,
-    encoded: str,
-    mime_type: str,
-    chunk_size: int,
-    dry_run: bool,
-) -> Optional[str]:
-    if dry_run:
-        LOG.info("[dry-run] Would decode Base64 and upload %s", filename)
-        return None
-
-    temp_path, _, detected_mime = spool_base64_to_tempfile(encoded, chunk_size)
-    final_mime = detected_mime or mime_type
-    try:
-        with temp_path.open("rb") as handle:
-            return upload_stream(
-                drive_service,
-                folder_id,
-                filename,
-                handle,
-                final_mime,
-                chunk_size,
-                dry_run=False,
-            )
-    finally:
-        temp_path.unlink(missing_ok=True)
-
-
 def build_filename(record: Mapping[str, Any], source: DocumentSource) -> str:
     doc_id = str(record.get("id") or record.get("_id") or "unknown")
     vendor = slugify(str(record.get("vendor_name") or record.get("vendor_id") or "vendor"))
     doc_type = slugify(str(record.get("document_type") or record.get("title") or "document"))
-    url_hint = source.value if source.kind == "url" else None
-    ext = guess_extension(source.mime_type, url_hint, source.filename_hint)
+    ext = guess_extension(source.mime_type, source.value, source.filename_hint)
     return f"{vendor}__{doc_type}__{doc_id}{ext}"
 
 
-def fetch_documents(client: Client, table_name: str) -> list[dict[str, Any]]:
-    page_size = 500
-    offset = 0
-    rows: list[dict[str, Any]] = []
+def fetch_documents(config: BackupConfig) -> list[dict[str, Any]]:
+    url = f"{config.base44_api_base}/{config.base44_app_id}/entities/{config.base44_entity}"
+    headers = {"Authorization": f"Bearer {config.base44_token}"}
 
-    while True:
-        query = client.table(table_name).select("*")
-        response = query.range(offset, offset + page_size - 1).execute()
-        batch = response.data or []
-        if not batch:
-            break
-        rows.extend(batch)
-        if len(batch) < page_size:
-            break
-        offset += page_size
+    LOG.info("Fetching documents from Base44: %s", url)
+    response = requests.get(url, headers=headers, timeout=120)
+    response.raise_for_status()
+    records = response.json()
+    if not isinstance(records, list):
+        raise ValueError(f"Unexpected Base44 response type: {type(records)!r}")
 
-    rows.sort(
-        key=lambda row: str(
-            row.get("updated_at")
-            or row.get("updated_date")
-            or row.get("created_at")
-            or row.get("created_date")
-            or ""
-        ),
+    records.sort(
+        key=lambda row: str(row.get("updated_date") or row.get("created_date") or ""),
         reverse=True,
     )
-    return rows
+    return records
 
 
 def upload_manifest(
@@ -571,10 +400,11 @@ def upload_manifest(
 ) -> None:
     manifest = {
         "app": "NOSSCO Nexxus",
+        "source": "base44",
         "backup_date": config.backup_date,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "record_count": len(records),
-        "uploaded_count": sum(1 for item in results if item.get("drive_file_id")),
+        "uploaded_count": sum(1 for item in results if item.get("status") == "uploaded"),
         "skipped_count": sum(1 for item in results if item.get("status") == "skipped"),
         "failed_count": sum(1 for item in results if item.get("status") == "failed"),
         "records": results,
@@ -584,8 +414,6 @@ def upload_manifest(
     if config.dry_run:
         LOG.info("[dry-run] Would upload manifest.json (%d bytes)", len(payload))
         return
-
-    from io import BytesIO
 
     stream = BytesIO(payload)
     upload_stream(
@@ -600,17 +428,22 @@ def upload_manifest(
 
 
 def backup_documents(config: BackupConfig) -> int:
-    client = create_client(config.supabase_url, config.supabase_key)
-    drive_service = build_drive_service(config.credentials_file)
-    target_folder_id = ensure_dated_folder(
-        drive_service,
-        config.drive_folder_id,
-        config.backup_date,
-    )
+    records = fetch_documents(config)
+    LOG.info("Fetched %d ComplianceDocument records from Base44", len(records))
 
-    LOG.info("Fetching documents from Supabase table %s", config.table_name)
-    records = fetch_documents(client, config.table_name)
-    LOG.info("Fetched %d document records", len(records))
+    drive_service = None
+    target_folder_id = config.drive_folder_id
+    if config.dry_run and not config.credentials_file.is_file():
+        LOG.warning(
+            "Dry-run without google-credentials.json — will validate Base44 records only"
+        )
+    else:
+        drive_service = build_drive_service(config.credentials_file)
+        target_folder_id = ensure_dated_folder(
+            drive_service,
+            config.drive_folder_id,
+            config.backup_date,
+        )
 
     results: list[dict[str, Any]] = []
     failures = 0
@@ -621,19 +454,16 @@ def backup_documents(config: BackupConfig) -> int:
         metadata = {
             field: record.get(field)
             for field in METADATA_FIELDS
-            if field in record or field.replace("_at", "_date") in record
+            if field in record
         }
 
         if source is None:
-            LOG.warning(
-                "Skipping %s: no storage_path, legacy_file_url, file_url, or Base64 payload found",
-                doc_id,
-            )
+            LOG.warning("Skipping %s: no valid file_url found", doc_id)
             results.append(
                 {
                     "id": doc_id,
                     "status": "skipped",
-                    "reason": "no_file_source",
+                    "reason": "no_file_url",
                     "metadata": metadata,
                 }
             )
@@ -643,19 +473,16 @@ def backup_documents(config: BackupConfig) -> int:
         mime_type = source.mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
         try:
-            if source.kind == "storage":
-                drive_file_id = upload_from_supabase_storage(
-                    client,
-                    drive_service,
-                    target_folder_id,
-                    filename,
-                    source.bucket or DEFAULT_STORAGE_BUCKET,
-                    source.value,
-                    mime_type,
-                    config.chunk_size,
-                    config.dry_run,
-                )
-            elif source.kind == "url":
+            if drive_service is None:
+                # Validate file_url is reachable in list-only dry-run
+                head = requests.head(source.value, timeout=30, allow_redirects=True)
+                if head.status_code >= 400:
+                    head = requests.get(source.value, stream=True, timeout=30)
+                    head.raise_for_status()
+                    head.close()
+                drive_file_id = None
+                LOG.info("[dry-run] OK %s -> %s", doc_id, source.value)
+            else:
                 drive_file_id = upload_from_url(
                     drive_service,
                     target_folder_id,
@@ -665,21 +492,10 @@ def backup_documents(config: BackupConfig) -> int:
                     config.chunk_size,
                     config.dry_run,
                 )
-            else:
-                drive_file_id = upload_from_base64(
-                    drive_service,
-                    target_folder_id,
-                    filename,
-                    source.value,
-                    mime_type,
-                    config.chunk_size,
-                    config.dry_run,
-                )
-
             results.append(
                 {
                     "id": doc_id,
-                    "status": "uploaded" if drive_file_id or config.dry_run else "uploaded",
+                    "status": "uploaded",
                     "filename": filename,
                     "source_kind": source.kind,
                     "drive_file_id": drive_file_id,
@@ -700,7 +516,7 @@ def backup_documents(config: BackupConfig) -> int:
                 }
             )
 
-    if config.upload_manifest:
+    if config.upload_manifest and drive_service is not None:
         upload_manifest(drive_service, target_folder_id, records, results, config)
 
     uploaded = sum(1 for item in results if item.get("status") == "uploaded")
