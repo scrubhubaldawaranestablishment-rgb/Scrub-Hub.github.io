@@ -2,25 +2,30 @@
 """
 NOSSCO Nexxus document backup script.
 
-Fetches compliance document records from Supabase (Base44 backend), resolves file
-payloads from URL downloads or Base64-encoded columns, and uploads them to a
-date-stamped subfolder in Google Drive using streaming I/O to limit memory use.
+Fetches compliance document records from Supabase (nossco-core-ops-staging),
+downloads files from Supabase Storage or legacy URLs, decodes Base64 payloads
+when present, and uploads them to a date-stamped Google Drive subfolder using
+streaming I/O to limit memory use.
+
+Confirmed Supabase project:
+  URL:   https://dilknptetrnicoilhfmb.supabase.co
+  Table: compliance_documents
+  Files: storage_path + bucket (primary), legacy_file_url (fallback)
 
 Required environment variables:
-  SUPABASE_URL              Supabase project URL
   SUPABASE_SERVICE_ROLE_KEY Service role key (recommended for backups)
 
 Optional environment variables:
-  SUPABASE_TABLE            Table name (default: ComplianceDocument)
+  SUPABASE_URL              Default: https://dilknptetrnicoilhfmb.supabase.co
+  SUPABASE_TABLE            Default: compliance_documents
   GOOGLE_CREDENTIALS_FILE   Path to service account JSON (default: google-credentials.json)
-  GOOGLE_DRIVE_FOLDER_ID      Target shared folder ID
-  BACKUP_CHUNK_SIZE           Stream chunk size in bytes (default: 262144)
-  BACKUP_DRY_RUN              Set to "1" to list actions without uploading
-  BACKUP_MANIFEST             Set to "0" to skip manifest.json upload (default: upload)
+  GOOGLE_DRIVE_FOLDER_ID    Target shared folder ID
+  BACKUP_CHUNK_SIZE         Stream chunk size in bytes (default: 262144)
+  BACKUP_DRY_RUN            Set to "1" to list actions without uploading
+  BACKUP_MANIFEST           Set to "0" to skip manifest.json upload (default: upload)
 
 Usage:
   pip install -r scripts/nossco-backup/requirements.txt
-  export SUPABASE_URL=...
   export SUPABASE_SERVICE_ROLE_KEY=...
   export GOOGLE_DRIVE_FOLDER_ID=1saHGqanqHjrapVHUV0WaJ15cmuQcil0N
   python scripts/nossco-backup/backup_documents.py
@@ -53,10 +58,12 @@ load_dotenv()
 
 LOG = logging.getLogger("nossco-backup")
 
-DEFAULT_TABLE = "ComplianceDocument"
+DEFAULT_TABLE = "compliance_documents"
+DEFAULT_SUPABASE_URL = "https://dilknptetrnicoilhfmb.supabase.co"
 DEFAULT_CREDENTIALS = "google-credentials.json"
 DEFAULT_DRIVE_FOLDER = "1saHGqanqHjrapVHUV0WaJ15cmuQcil0N"
 DEFAULT_CHUNK_SIZE = 256 * 1024
+DEFAULT_STORAGE_BUCKET = "compliance_documents"
 
 # Columns checked for embedded Base64 payloads (first match wins).
 BASE64_FIELD_CANDIDATES = (
@@ -69,6 +76,7 @@ BASE64_FIELD_CANDIDATES = (
 )
 
 URL_FIELD_CANDIDATES = (
+    "legacy_file_url",
     "file_url",
     "document_url",
     "url",
@@ -87,16 +95,23 @@ METADATA_FIELDS = (
     "verification_status",
     "issue_date",
     "expiry_date",
-    "created_date",
-    "updated_date",
-    "file_url",
+    "created_at",
+    "updated_at",
+    "storage_path",
+    "bucket",
+    "legacy_file_url",
+    "original_filename",
+    "mime_type",
+    "size_bytes",
+    "legacy_base44_id",
 )
 
 
 @dataclass(frozen=True)
 class DocumentSource:
-    kind: str  # "url" | "base64"
+    kind: str  # "storage" | "url" | "base64"
     value: str
+    bucket: Optional[str] = None
     mime_type: Optional[str] = None
     filename_hint: Optional[str] = None
 
@@ -158,12 +173,12 @@ class HTTPStreamReader:
 
 
 def parse_config() -> BackupConfig:
-    supabase_url = os.getenv("SUPABASE_URL", "").strip()
+    supabase_url = os.getenv("SUPABASE_URL", DEFAULT_SUPABASE_URL).strip()
     supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-    if not supabase_url or not supabase_key:
+    if not supabase_key:
         raise SystemExit(
-            "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. "
-            "Set both before running the backup."
+            "Missing SUPABASE_SERVICE_ROLE_KEY. "
+            "Copy the service role key from Supabase Dashboard -> Project Settings -> API."
         )
 
     credentials_file = Path(
@@ -286,15 +301,27 @@ def first_present(record: Mapping[str, Any], keys: tuple[str, ...]) -> Optional[
 
 
 def resolve_document_source(record: Mapping[str, Any]) -> Optional[DocumentSource]:
+    storage_path = first_present(record, ("storage_path",))
+    bucket = first_present(record, ("bucket",)) or DEFAULT_STORAGE_BUCKET
+    mime_type = first_present(record, ("mime_type",))
+    filename_hint = first_present(record, ("original_filename", "file_name", "filename"))
+    if isinstance(storage_path, str) and storage_path.strip():
+        return DocumentSource(
+            kind="storage",
+            value=storage_path.strip(),
+            bucket=str(bucket),
+            mime_type=str(mime_type) if mime_type else None,
+            filename_hint=str(filename_hint) if filename_hint else Path(storage_path).name,
+        )
+
     for field in BASE64_FIELD_CANDIDATES:
         raw = first_present(record, (field,))
         if isinstance(raw, str) and raw.strip():
-            _, mime_type = normalize_base64_payload(raw)
-            filename_hint = first_present(record, ("file_name", "filename"))
+            _, detected_mime = normalize_base64_payload(raw)
             return DocumentSource(
                 kind="base64",
                 value=raw,
-                mime_type=mime_type,
+                mime_type=detected_mime or (str(mime_type) if mime_type else None),
                 filename_hint=str(filename_hint) if filename_hint else None,
             )
 
@@ -303,7 +330,8 @@ def resolve_document_source(record: Mapping[str, Any]) -> Optional[DocumentSourc
         return DocumentSource(
             kind="url",
             value=file_url.strip(),
-            filename_hint=Path(urlparse(file_url).path).name or None,
+            mime_type=str(mime_type) if mime_type else None,
+            filename_hint=str(filename_hint) if filename_hint else Path(urlparse(file_url).path).name,
         )
 
     return None
@@ -399,6 +427,42 @@ def upload_stream(
     return file_id
 
 
+def create_signed_storage_url(client: Client, bucket: str, storage_path: str) -> str:
+    result = client.storage.from_(bucket).create_signed_url(storage_path, 3600)
+    if isinstance(result, dict):
+        signed = result.get("signedURL") or result.get("signedUrl") or result.get("signed_url")
+        if isinstance(signed, str) and signed:
+            return signed
+    raise ValueError(f"Could not create signed URL for {bucket}/{storage_path}: {result!r}")
+
+
+def upload_from_supabase_storage(
+    client: Client,
+    drive_service,
+    folder_id: str,
+    filename: str,
+    bucket: str,
+    storage_path: str,
+    mime_type: str,
+    chunk_size: int,
+    dry_run: bool,
+) -> Optional[str]:
+    if dry_run:
+        LOG.info("[dry-run] Would download and upload %s from %s/%s", filename, bucket, storage_path)
+        return None
+
+    signed_url = create_signed_storage_url(client, bucket, storage_path)
+    return upload_from_url(
+        drive_service,
+        folder_id,
+        filename,
+        signed_url,
+        mime_type,
+        chunk_size,
+        dry_run=False,
+    )
+
+
 def upload_from_url(
     drive_service,
     folder_id: str,
@@ -464,7 +528,8 @@ def build_filename(record: Mapping[str, Any], source: DocumentSource) -> str:
     doc_id = str(record.get("id") or record.get("_id") or "unknown")
     vendor = slugify(str(record.get("vendor_name") or record.get("vendor_id") or "vendor"))
     doc_type = slugify(str(record.get("document_type") or record.get("title") or "document"))
-    ext = guess_extension(source.mime_type, source.value if source.kind == "url" else None, source.filename_hint)
+    url_hint = source.value if source.kind == "url" else None
+    ext = guess_extension(source.mime_type, url_hint, source.filename_hint)
     return f"{vendor}__{doc_type}__{doc_id}{ext}"
 
 
@@ -485,7 +550,13 @@ def fetch_documents(client: Client, table_name: str) -> list[dict[str, Any]]:
         offset += page_size
 
     rows.sort(
-        key=lambda row: str(row.get("updated_date") or row.get("created_date") or ""),
+        key=lambda row: str(
+            row.get("updated_at")
+            or row.get("updated_date")
+            or row.get("created_at")
+            or row.get("created_date")
+            or ""
+        ),
         reverse=True,
     )
     return rows
@@ -547,10 +618,17 @@ def backup_documents(config: BackupConfig) -> int:
     for record in records:
         doc_id = str(record.get("id") or record.get("_id") or "unknown")
         source = resolve_document_source(record)
-        metadata = {field: record.get(field) for field in METADATA_FIELDS if field in record}
+        metadata = {
+            field: record.get(field)
+            for field in METADATA_FIELDS
+            if field in record or field.replace("_at", "_date") in record
+        }
 
         if source is None:
-            LOG.warning("Skipping %s: no file_url or Base64 payload found", doc_id)
+            LOG.warning(
+                "Skipping %s: no storage_path, legacy_file_url, file_url, or Base64 payload found",
+                doc_id,
+            )
             results.append(
                 {
                     "id": doc_id,
@@ -565,7 +643,19 @@ def backup_documents(config: BackupConfig) -> int:
         mime_type = source.mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
         try:
-            if source.kind == "url":
+            if source.kind == "storage":
+                drive_file_id = upload_from_supabase_storage(
+                    client,
+                    drive_service,
+                    target_folder_id,
+                    filename,
+                    source.bucket or DEFAULT_STORAGE_BUCKET,
+                    source.value,
+                    mime_type,
+                    config.chunk_size,
+                    config.dry_run,
+                )
+            elif source.kind == "url":
                 drive_file_id = upload_from_url(
                     drive_service,
                     target_folder_id,
