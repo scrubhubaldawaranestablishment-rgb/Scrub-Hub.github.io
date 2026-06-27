@@ -347,22 +347,30 @@ def upload_from_url(
         LOG.info("[dry-run] Would download and upload %s from %s", filename, url)
         return None
 
+    import tempfile
+
     with requests.get(url, stream=True, timeout=120) as response:
         response.raise_for_status()
         resolved_mime = response.headers.get("Content-Type", mime_type).split(";")[0]
-        reader = HTTPStreamReader(response, chunk_size=chunk_size)
-        try:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            temp_path = Path(tmp.name)
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    tmp.write(chunk)
+
+    try:
+        with temp_path.open("rb") as handle:
             return upload_stream(
                 drive_service,
                 folder_id,
                 filename,
-                reader,
+                handle,
                 resolved_mime,
                 chunk_size,
                 dry_run=False,
             )
-        finally:
-            reader.close()
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def build_filename(record: Mapping[str, Any], source: DocumentSource) -> str:
