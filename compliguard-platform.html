@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CompliGuard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f4f6f9;color:#1e293b}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:#fff;border-right:1px solid #e2e8f0;padding:16px 0;display:flex;flex-direction:column}
+.sidebar.rtl{border-right:none;border-left:1px solid #e2e8f0}
+.logo{padding:12px 20px;font-weight:700;color:#2563eb;cursor:pointer}
+.nav-item{padding:10px 20px;cursor:pointer;color:#475569}
+.nav-item.active,.nav-item:hover{background:#eff6ff;color:#2563eb}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid #e2e8f0;font-size:13px}
+.main{flex:1;display:flex;flex-direction:column}
+.header{padding:16px 24px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+.content{padding:24px;flex:1}
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:14px}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-ghost{background:#f1f5f9;color:#475569}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f8fafc;font-weight:600;font-size:13px;color:#64748b}
+.badge{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.badge-valid{background:#dcfce7;color:#166534}
+.badge-expiring{background:#fef3c7;color:#92400e}
+.badge-expired{background:#fee2e2;color:#991b1b}
+.empty{text-align:center;padding:60px;color:#94a3b8}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.metric-card{background:#fff;padding:20px;border-radius:12px;border:1px solid #e2e8f0}
+.metric-card h3{font-size:13px;color:#64748b;margin-bottom:8px}
+.metric-card .val{font-size:28px;font-weight:700}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:#fff;border-radius:12px;padding:24px;width:480px;max-height:90vh;overflow-y:auto}
+.modal h2{margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#475569}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 24px;border-radius:8px;color:#fff;font-size:14px;font-weight:500;animation:slideIn .3s ease}
+.toast-success{background:#16a34a}
+.toast-error{background:#dc2626}
+.toast-info{background:#2563eb}
+@keyframes slideIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f4f6f9}
+.login-box{background:#fff;padding:40px;border-radius:12px;width:400px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-box h1{margin-bottom:8px}
+.login-box p{color:#64748b;margin-bottom:24px;font-size:14px}
+.chat-box{background:#fff;border-radius:12px;border:1px solid #e2e8f0;display:flex;flex-direction:column;height:calc(100vh - 200px)}
+.chat-messages{flex:1;padding:16px;overflow-y:auto}
+.chat-input-area{display:flex;padding:12px;border-top:1px solid #e2e8f0;gap:8px}
+.chat-input-area input{flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:8px}
+.chat-msg{margin-bottom:12px;padding:10px 14px;border-radius:12px;max-width:80%;font-size:14px}
+.chat-msg.user{background:#2563eb;color:#fff;margin-left:auto}
+.chat-msg.ai{background:#f1f5f9;color:#1e293b}
+.row-actions{display:flex;gap:6px}
+.row-actions button{padding:4px 8px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer}
+.gauge{text-align:center;margin:24px 0}
+.gauge-circle{width:120px;height:120px;border-radius:50%;border:8px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:24px;font-weight:700}
+.gauge-circle.good{border-color:#16a34a;color:#16a34a}
+[dir=rtl] .main{text-align:right}
+[dir=rtl] th,[dir=rtl] td{text-align:right}
+</style>
+</head>
+<body>
+<div id="toast-container" class="toast-container"></div>
+<div id="app"></div>
+<script>
+const MODULES=[
+  {id:'dashboard',en:'AI Assistant',ar:'المساعد الذكي'},
+  {id:'contracts',en:'Contracts',ar:'العقود'},
+  {id:'iqama',en:"Workers' Residency / Iqama",ar:'إقامة العمال'},
+  {id:'tax',en:'Tax Filing Deadlines',ar:'مواعيد الضرائب'},
+  {id:'medical_insurance',en:"Workers' Medical Insurance",ar:'التأمين الطبي'},
+  {id:'social_insurance',en:'Social Insurance Deadlines',ar:'مواعيد التأمينات'},
+  {id:'payroll',en:"Workers' Salaries & Payroll",ar:'الرواتب'},
+  {id:'commercial_registration',en:'Commercial Registration',ar:'السجل التجاري'},
+  {id:'tasks',en:'Personal Tasks',ar:'المهام الشخصية'}
+];
+const T={
+  en:{addRecord:'Add Record',addTask:'Add Task',save:'Save',cancel:'Cancel',edit:'Edit',del:'Delete',analysis:'Run Compliance Analysis',analysisDone:'Analysis complete',saved:'Record saved successfully',deleted:'Record deleted',title:'Title',ref:'Reference Number',issue:'Issue Date',expiry:'Expiry Date',notes:'Notes',upload:'Upload Document',login:'Log in',dashboard:'Executive Control Panel',expired:'Expired',near:'Near Expired',valid:'Valid',total:'Total Scanned',rate:'Compliance Rate',noRecords:'No records found',confirmDel:'Delete this record?',uploadAI:'AI extracted fields from document',lang:'العربية',signOut:'Sign Out'},
+  ar:{addRecord:'إضافة سجل',addTask:'إضافة مهمة',save:'حفظ',cancel:'إلغاء',edit:'تعديل',del:'حذف',analysis:'تشغيل تحليل الامتثال',analysisDone:'اكتمل التحليل',saved:'تم حفظ السجل بنجاح',deleted:'تم حذف السجل',title:'العنوان',ref:'الرقم المرجعي',issue:'تاريخ الإصدار',expiry:'تاريخ الانتهاء',notes:'ملاحظات',upload:'رفع مستند',login:'تسجيل الدخول',dashboard:'لوحة التحكم التنفيذية',expired:'منتهي الصلاحية',near:'قريب الانتهاء',valid:'ساري المفعول',total:'إجمالي السجلات',rate:'معدل الامتثال',noRecords:'لا توجد سجلات',confirmDel:'حذف هذا السجل؟',uploadAI:'استخرج الذكاء الاصطناعي الحقول من المستند',lang:'English',signOut:'تسجيل الخروج'}
+};
+let state={loggedIn:false,lang:'en',page:'dashboard',records:JSON.parse(localStorage.getItem('cg_records')||'[]'),tasks:JSON.parse(localStorage.getItem('cg_tasks')||'[]'),chat:JSON.parse(localStorage.getItem('cg_chat')||'[]'),metrics:null,modal:null};
+
+function t(k){return T[state.lang][k]||k}
+function save(){localStorage.setItem('cg_records',JSON.stringify(state.records));localStorage.setItem('cg_tasks',JSON.stringify(state.tasks));localStorage.setItem('cg_chat',JSON.stringify(state.chat))}
+function toast(msg,type='success'){const c=document.getElementById('toast-container');const el=document.createElement('div');el.className='toast toast-'+type;el.textContent=msg;c.appendChild(el);setTimeout(()=>el.remove(),3000)}
+function computeStatus(expiry){if(!expiry)return'valid';const today=new Date();today.setHours(0,0,0,0);const exp=new Date(expiry);const diff=(exp-today)/86400000;if(diff<0)return'expired';if(diff<=30)return'expiring_soon';return'valid'}
+function statusBadge(s){const m={valid:['Valid','badge-valid'],expiring_soon:['Expiring Soon','badge-expiring'],expired:['Expired','badge-expired']};const[v,c]=m[s]||m.valid;return`<span class="badge ${c}">${v}</span>`}
+function runAnalysis(){const recs=state.records;let exp=0,near=0,val=0;recs.forEach(r=>{const s=computeStatus(r.expiry_date);if(s==='expired')exp++;else if(s==='expiring_soon')near++;else val++});state.metrics={expired:exp,nearExpired:near,valid:val,total:recs.length,rate:recs.length?Math.round((val/recs.length)*100):0};setTimeout(()=>toast(t('analysisDone'),'success'),500);render()}
+function extractFromFile(file,form){setTimeout(()=>{const name=file.name.replace(/\.[^.]+$/,'');form.title.value=name;form.reference_number.value='REF-'+Date.now().toString().slice(-6);const today=new Date();form.issue_date.value=today.toISOString().slice(0,10);const exp=new Date(today);exp.setFullYear(exp.getFullYear()+1);form.expiry_date.value=exp.toISOString().slice(0,10);toast(t('uploadAI'),'info')},1500)}
+function renderLogin(){document.getElementById('app').innerHTML=`<div class="login-page"><div class="login-box"><h1>CompliGuard</h1><p>Compliance management platform</p><div class="form-group"><label>Email</label><input id="email" value="user@company.com"></div><div class="form-group"><label>Password</label><input id="pass" type="password" value="password"></div><button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()">${t('login')}</button></div></div>`}
+function doLogin(){state.loggedIn=true;render();toast('Welcome to CompliGuard','info')}
+function renderModal(module){const isTask=module==='tasks';state.modal={module,editId:null};const html=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><h2>${isTask?t('addTask'):t('addRecord')}</h2><form id="record-form"><div class="form-group"><label>${t('title')}</label><input name="title" required></div>${!isTask?`<div class="form-group"><label>${t('ref')}</label><input name="reference_number"></div><div class="form-group"><label>${t('issue')}</label><input name="issue_date" type="date"></div><div class="form-group"><label>${t('expiry')}</label><input name="expiry_date" type="date"></div><div class="form-group"><label>${t('upload')}</label><input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleUpload(this)"></div>`:`<div class="form-group"><label>Due Date</label><input name="due_date" type="date"></div><div class="form-group"><label>Priority</label><select name="priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>`}<div class="form-group"><label>${t('notes')}</label><textarea name="notes" rows="2"></textarea></div><div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button type="submit" class="btn btn-primary">${t('save')}</button></div></form></div></div>`;document.body.insertAdjacentHTML('beforeend',html);document.getElementById('record-form').onsubmit=e=>{e.preventDefault();saveRecord(module,new FormData(e.target));}}
+function handleUpload(input){if(input.files[0])extractFromFile(input.files[0],document.getElementById('record-form'))}
+function saveRecord(module,fd){const data=Object.fromEntries(fd);if(module==='tasks'){state.tasks.push({id:Date.now(),...data,completed:false})}else{state.records.push({id:Date.now(),module,...data,status:computeStatus(data.expiry_date)})}save();closeModal();setTimeout(()=>toast(t('saved'),'success'),300);render()}
+function closeModal(){document.querySelector('.modal-overlay')?.remove();state.modal=null}
+function deleteRecord(id,module){if(!confirm(t('confirmDel')))return;if(module==='tasks')state.tasks=state.tasks.filter(r=>r.id!==id);else state.records=state.records.filter(r=>r.id!==id);save();setTimeout(()=>toast(t('deleted'),'success'),300);render()}
+function renderDashboard(){const m=state.metrics||{expired:0,nearExpired:0,valid:0,total:0,rate:0};return`<div class="metrics"><div class="metric-card"><h3>${t('expired')}</h3><div class="val" style="color:#dc2626">${m.expired}</div></div><div class="metric-card"><h3>${t('near')}</h3><div class="val" style="color:#d97706">${m.nearExpired}</div></div><div class="metric-card"><h3>${t('valid')}</h3><div class="val" style="color:#16a34a">${m.valid}</div></div><div class="metric-card"><h3>${t('total')}</h3><div class="val">${m.total}</div></div></div><div class="gauge"><div class="gauge-circle ${m.rate>=80?'good':''}">${m.rate}%</div><p style="margin-top:8px;color:#64748b">${t('rate')}</p></div>`}
+function renderTable(module){const isTask=module==='tasks';const items=isTask?state.tasks:state.records.filter(r=>r.module===module);if(!items.length)return`<div class="empty">${t('noRecords')}</div>`;if(isTask)return`<table><thead><tr><th>${t('title')}</th><th>Due</th><th>Priority</th><th></th></tr></thead><tbody>${items.map(r=>`<tr><td>${r.title}</td><td>${r.due_date||'-'}</td><td>${r.priority||'medium'}</td><td class="row-actions"><button onclick="deleteRecord(${r.id},'tasks')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;return`<table><thead><tr><th>${t('title')}</th><th>${t('ref')}</th><th>${t('expiry')}</th><th>Status</th><th></th></tr></thead><tbody>${items.map(r=>{const s=computeStatus(r.expiry_date);return`<tr><td>${r.title}</td><td>${r.reference_number||'-'}</td><td>${r.expiry_date||'-'}</td><td>${statusBadge(s)}</td><td class="row-actions"><button onclick="deleteRecord(${r.id})">${t('del')}</button></td></tr>`}).join('')}</tbody></table>`}
+function renderChat(){return`<div class="chat-box"><div class="chat-messages" id="chat-msgs">${state.chat.map(m=>`<div class="chat-msg ${m.role}">${m.text}</div>`).join('')}</div><div class="chat-input-area"><input id="chat-in" placeholder="Ask about compliance..."><button class="btn btn-primary" onclick="sendChat()">Send</button></div></div>`}
+function sendChat(){const inp=document.getElementById('chat-in');const text=inp.value.trim();if(!text)return;state.chat.push({role:'user',text});const exp=state.records.filter(r=>computeStatus(r.expiry_date)==='expired').length;const near=state.records.filter(r=>computeStatus(r.expiry_date)==='expiring_soon').length;let reply=`You have ${state.records.length} compliance records: ${exp} expired, ${near} expiring soon, ${state.records.length-exp-near} valid.`;state.chat.push({role:'ai',text:reply});inp.value='';save();render();toast('AI responded','info')}
+function render(){if(!state.loggedIn)return renderLogin();const mod=MODULES.find(m=>m.id===state.page)||MODULES[0];const isDash=state.page==='dashboard';const isTask=state.page==='tasks';const isModule=MODULES.slice(1,8).some(m=>m.id===state.page);const rtl=state.lang==='ar';document.documentElement.dir=rtl?'rtl':'ltr';let actionBtn='';if(isDash)actionBtn=`<button class="btn btn-primary" onclick="runAnalysis()">${t('analysis')}</button>`;else if(isTask)actionBtn=`<button class="btn btn-primary" onclick="renderModal('tasks')">${t('addTask')}</button>`;else if(isModule)actionBtn=`<button class="btn btn-primary" onclick="renderModal('${state.page}')">${t('addRecord')}</button>`;let body='';if(isDash)body=renderDashboard()+renderChat();else if(isTask)body=renderTable('tasks');else if(isModule)body=renderTable(state.page);document.getElementById('app').innerHTML=`<div class="app"><div class="sidebar${rtl?' rtl':''}"><div class="logo" onclick="state.page='dashboard';render()">Compliance Hub</div>${MODULES.map(m=>`<div class="nav-item ${state.page===m.id?'active':''}" onclick="state.page='${m.id}';render()">${state.lang==='ar'?m.ar:m.en}</div>`).join('')}<div class="sidebar-footer"><button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="state.lang=state.lang==='en'?'ar':'en';render()">${t('lang')}</button><button class="btn btn-ghost" style="width:100%" onclick="state.loggedIn=false;render()">${t('signOut')}</button></div></div><div class="main"><div class="header"><h1>${isDash?t('dashboard'):(state.lang==='ar'?mod.ar:mod.en)}</h1><div>${actionBtn}</div></div><div class="content">${body}</div></div></div>`}
+render();
+</script>
+</body>
+</html>
