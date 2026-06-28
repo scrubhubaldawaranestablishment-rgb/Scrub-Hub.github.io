@@ -56,7 +56,7 @@ DEFAULT_APP_ID = "6a1ae5a11195cab07d9a51af"
 DEFAULT_ENTITY = "ComplianceDocument"
 DEFAULT_API_BASE = "https://base44.app/api/apps"
 DEFAULT_CREDENTIALS = "google-credentials.json"
-DEFAULT_DRIVE_FOLDER = "1saHGqanqHjrapVHUv0WaJ15cmuQcil0N"
+DEFAULT_DRIVE_FOLDER = "1i-t3_wyCRHa8zP0AtLgij61RCYv02kqn"
 DEFAULT_CHUNK_SIZE = 256 * 1024
 
 URL_FIELD_CANDIDATES = (
@@ -252,7 +252,7 @@ def build_drive_service(credentials_file: Path):
 
     credentials = service_account.Credentials.from_service_account_file(
         str(credentials_file),
-        scopes=["https://www.googleapis.com/auth/drive.file"],
+        scopes=["https://www.googleapis.com/auth/drive"],
     )
     return build("drive", "v3", credentials=credentials, cache_discovery=False)
 
