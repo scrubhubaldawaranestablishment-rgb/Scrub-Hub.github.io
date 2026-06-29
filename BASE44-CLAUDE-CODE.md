@@ -16,11 +16,15 @@ Once connected, Claude Code can:
 **Live URL:** https://compliguard-platform.base44.app  
 **Editor:** https://app.base44.com/apps/6a3bd901574ca39ed1b9289d/editor/preview
 
-## Quick setup (already done in this repo)
+## Already configured in this repo
 
-The project-scoped config is in [`.mcp.json`](./.mcp.json):
+| File | Purpose |
+|------|---------|
+| [`.mcp.json`](./.mcp.json) | Base44 MCP server URL |
+| [`.claude/settings.json`](./.claude/settings.json) | Auto-approve `base44` MCP server |
 
 ```json
+// .mcp.json
 {
   "mcpServers": {
     "base44": {
@@ -31,21 +35,23 @@ The project-scoped config is in [`.mcp.json`](./.mcp.json):
 }
 ```
 
-## Finish setup on your machine
+```json
+// .claude/settings.json
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["base44"]
+}
+```
 
-### 1. Install Claude Code
+## Finish setup (one step on your side)
+
+### 1. Install Claude Code (if needed)
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
-Or run without installing:
-
-```bash
-npx @anthropic-ai/claude-code
-```
-
-### 2. Authenticate Claude Code
+### 2. Sign in to Claude Code
 
 ```bash
 claude
@@ -53,30 +59,18 @@ claude
 
 Sign in with your Anthropic account when prompted.
 
-### 3. Approve the Base44 MCP server
+### 3. Complete Base44 OAuth (required once)
 
 From this project directory:
 
 ```bash
 cd /path/to/your/repo
-claude
+claude mcp login base44
 ```
 
-Inside the session:
+Sign in with **scrubhubaldawaranestablishment@gmail.com** (Google or email). Approve access when asked.
 
-```text
-/mcp
-```
-
-Select **base44** → **Approve** (first time only for project-scoped servers).
-
-### 4. Sign in to Base44 (OAuth)
-
-Still in `/mcp`, select **base44** → **Authenticate**.
-
-Your browser opens the Base44 OAuth flow. Sign in with the account that owns your apps. You only do this once per machine.
-
-### 5. Verify the connection
+### 4. Verify the connection
 
 Exit the session, then run:
 
