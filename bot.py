@@ -23,7 +23,12 @@ def setup_logging() -> None:
 
 def log_startup(config: BotConfig) -> None:
     status = env_status()
+    logger.info("=== Multi-Symbol MT5 Bot v2 ===")
+    logger.info("Strategy: HTF EMA trend + LTF RSI crossover (ScanAllPairs)")
     logger.info("Symbols: %s", ",".join(config.symbols))
+    logger.info("Timeframes: HTF=%s LTF=%s", config.htf, config.ltf)
+    logger.info("Risk: %.1f%% per trade | max %d trades/symbol | spread max %d pts",
+                config.risk_percent, config.max_open_trades_per_symbol, config.max_spread_points)
     logger.info("Dashboard: %s", config.base44_app_base_url)
     logger.info(
         "Integrations | Base44=%s Discord=%s Telegram=%s",

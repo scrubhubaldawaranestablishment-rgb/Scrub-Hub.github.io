@@ -12,6 +12,7 @@ if not exist ".env" (
 )
 
 echo Running simulation test (5 cycles)...
+set BOT_MODE=simulation
 set BOT_TEST_CYCLES=5
 %PY% bot.py
 echo.

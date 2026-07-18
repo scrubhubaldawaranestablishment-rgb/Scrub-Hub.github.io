@@ -6,7 +6,37 @@ PROBLEM: 'setup.bat' is not recognized
 CAUSE:  Your folder is an OLD download missing the new files.
 
 ================================================================================
-OPTION A - Download latest (recommended)
+OPTION A - Fix "folder already exists" + get latest bot (RECOMMENDED)
+================================================================================
+
+Paste in CMD:
+
+   cd C:\Users\elmep\Downloads
+   rmdir /S /Q MT5_Trading_Bot
+   git clone -b cursor/python-bot-script-9399 https://github.com/scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io.git MT5_Trading_Bot
+   cd MT5_Trading_Bot
+   setup.bat
+
+Or double-click GET_LATEST.bat (does the same automatically).
+
+================================================================================
+WHAT'S NEW IN bot.py (v2 multi-symbol strategy)
+================================================================================
+
+- Scans EURUSD, GBPUSD, USDJPY, AUDUSD simultaneously (ScanAllPairs)
+- HTF EMA trend (H1) + LTF RSI crossover (M5) confluence
+- Per-symbol risk limits, spread filter, SL/TP
+- Discord + Telegram alerts on every trade
+- Live sync to Trade Sentinel dashboard
+
+Required folders (must all be present):
+  bot.py
+  trading_bot\       <-- strategy code lives here
+  setup.bat
+  bot.env.example
+
+================================================================================
+OPTION B - Download latest (recommended)
 ================================================================================
 
 1. Open CMD and run:
