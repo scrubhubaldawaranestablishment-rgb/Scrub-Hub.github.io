@@ -1,0 +1,88 @@
+================================================================================
+  MT5 TRADING BOT - WINDOWS QUICK START
+================================================================================
+
+PROBLEM: 'setup.bat' is not recognized
+CAUSE:  Your folder is an OLD download missing the new files.
+
+================================================================================
+OPTION A - Fix "folder already exists" + get latest bot (RECOMMENDED)
+================================================================================
+
+Paste in CMD:
+
+   cd C:\Users\elmep\Downloads
+   rmdir /S /Q MT5_Trading_Bot
+   git clone -b cursor/python-bot-script-9399 https://github.com/scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io.git MT5_Trading_Bot
+   cd MT5_Trading_Bot
+   setup.bat
+
+Or double-click GET_LATEST.bat (does the same automatically).
+
+================================================================================
+WHAT'S NEW IN bot.py (v2 multi-symbol strategy)
+================================================================================
+
+- Scans EURUSD, GBPUSD, USDJPY, AUDUSD simultaneously (ScanAllPairs)
+- HTF EMA trend (H1) + LTF RSI crossover (M5) confluence
+- Per-symbol risk limits, spread filter, SL/TP
+- Discord + Telegram alerts on every trade
+- Live sync to Trade Sentinel dashboard
+
+Required folders (must all be present):
+  bot.py
+  trading_bot\       <-- strategy code lives here
+  setup.bat
+  bot.env.example
+
+================================================================================
+OPTION B - Download latest (recommended)
+================================================================================
+
+1. Open CMD and run:
+
+   cd C:\Users\elmep\Downloads
+   rmdir /S /Q MT5_Trading_Bot
+   git clone -b cursor/python-bot-script-9399 https://github.com/scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io.git MT5_Trading_Bot
+   cd MT5_Trading_Bot
+   setup.bat
+
+2. If you don't have git, download ZIP from:
+   https://github.com/scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io/archive/refs/heads/cursor/python-bot-script-9399.zip
+
+   Extract to: C:\Users\elmep\Downloads\MT5_Trading_Bot
+   Then run: setup.bat
+
+================================================================================
+OPTION B - Manual install (if you already have bot.py in folder)
+================================================================================
+
+Open CMD in your bot folder and paste these ONE AT A TIME:
+
+   cd C:\Users\elmep\Downloads\MT5_Trading_Bot
+   copy bot.env.example .env
+   notepad .env
+   py -3 -m pip install -r requirements.txt
+   py -3 scripts\test_notifications.py
+   py -3 scripts\test_dashboard_live.py
+   set BOT_TEST_CYCLES=5
+   py -3 bot.py
+
+(Use "python" instead of "py -3" if py is not found)
+
+================================================================================
+EDIT .env - REQUIRED KEYS
+================================================================================
+
+   BASE44_API_KEY=your_token_here
+   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+   TELEGRAM_BOT_TOKEN=123456:ABC...
+   TELEGRAM_CHAT_ID=123456789
+
+================================================================================
+DASHBOARD
+================================================================================
+
+   https://nondescript-trade-sentinel-pro.base44.app
+
+================================================================================
