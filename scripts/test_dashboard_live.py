@@ -2,11 +2,10 @@
 """
 Live integration test for Trade Sentinel dashboard.
 
-Pushes multi-symbol simulated trades to:
-  https://nondescript-trade-sentinel-pro.base44.app
+Usage (Windows CMD):
+  run_dashboard_test.bat
 
-Usage:
-  export BASE44_API_KEY="$Base44_API_Token"   # or set in environment
+Usage (Linux/Mac):
   python3 scripts/test_dashboard_live.py
 """
 
@@ -23,7 +22,9 @@ sys.path.insert(0, str(ROOT))
 
 from trading_bot.base44_store import Base44Store
 from trading_bot.config import BotConfig
+from trading_bot.env_loader import load_env
 from trading_bot.models import TradeRecord
+from trading_bot.notifications import Notifier
 from trading_bot.scanner import MultiSymbolScanner
 
 logging.basicConfig(
@@ -34,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger("dashboard_test")
 
 
-def push_demo_trades(store: Base44Store) -> list[TradeRecord]:
+def push_demo_trades(store: Base44Store, notifier: Notifier) -> list[TradeRecord]:
     now = datetime.now(timezone.utc).isoformat()
     demos = [
         ("EURUSD", "BUY", 1.08633, 1.08568, 1.08764, 1.52),
@@ -57,6 +58,7 @@ def push_demo_trades(store: Base44Store) -> list[TradeRecord]:
             comment="dashboard_live_test",
         )
         store.save_trade(trade)
+        notifier.notify_trade(trade)
         saved.append(trade)
         logger.info("Pushed %s %s @ %.5f to dashboard", side, symbol, entry)
     return saved
@@ -74,23 +76,23 @@ def run_bot_scan() -> None:
 
 
 def main() -> int:
+    load_env()
     config = BotConfig()
     if not config.base44_api_key:
-        logger.error(
-            "BASE44_API_KEY (or Base44_API_Token) is required for dashboard sync"
-        )
+        logger.error("BASE44_API_KEY is required — add it to your .env file")
         return 1
 
     logger.info("Dashboard: %s", config.base44_app_base_url)
     logger.info("App ID: %s", config.base44_app_id)
 
     store = Base44Store(config)
+    notifier = Notifier(config)
     if not store._available:
         logger.error("Base44 store not available — check credentials")
         return 1
 
     logger.info("=== Phase 1: Push demo multi-symbol trades ===")
-    push_demo_trades(store)
+    push_demo_trades(store, notifier)
 
     logger.info("=== Phase 2: Run bot scan (may add another live trade) ===")
     run_bot_scan()
