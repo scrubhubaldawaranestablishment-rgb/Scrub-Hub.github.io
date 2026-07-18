@@ -30,7 +30,6 @@ def is_placeholder(value: str) -> bool:
         "xxx",
         "your_webhook",
         "your_token",
-        "123456789:abc",
     )
     return any(m in lower for m in markers)
 
