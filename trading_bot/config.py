@@ -44,8 +44,20 @@ class BotConfig:
 
     # Integrations
     local_fallback: bool = os.getenv("BOT_LOCAL_FALLBACK", "false").lower() == "true"
-    base44_api_key: str = os.getenv("BASE44_API_KEY", "")
-    base44_app_id: str = os.getenv("BASE44_APP_ID", "")
+    base44_api_key: str = os.getenv("BASE44_API_KEY", os.getenv("Base44_API_Token", ""))
+    base44_app_id: str = os.getenv(
+        "BASE44_APP_ID",
+        "6a5889155e63aca9fe8175e5",
+    )
+    base44_app_base_url: str = os.getenv(
+        "BASE44_APP_BASE_URL",
+        "https://nondescript-trade-sentinel-pro.base44.app",
+    )
+    base44_bot_api_key: str = os.getenv("BASE44_BOT_API_KEY", "")
+    base44_settings_id: str = os.getenv(
+        "BASE44_SETTINGS_ID",
+        "6a5889a0b628948d90d3f8bd",
+    )
     discord_webhook_url: str = os.getenv("DISCORD_WEBHOOK_URL", "")
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
