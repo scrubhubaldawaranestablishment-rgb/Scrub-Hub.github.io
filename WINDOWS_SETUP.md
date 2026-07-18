@@ -1,5 +1,35 @@
 # MT5 Multi-Symbol Trading Bot — Windows Quick Start
 
+> **If `setup.bat` is not recognized** → your folder is outdated.  
+> Read **`START_HERE.txt`** or run the commands in **Option A** below.
+
+## Option A — Get the latest code (fix missing setup.bat)
+
+Open **CMD** and run:
+
+```cmd
+cd C:\Users\elmep\Downloads
+git clone -b cursor/python-bot-script-9399 https://github.com/scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io.git MT5_Trading_Bot
+cd MT5_Trading_Bot
+setup.bat
+```
+
+**No git?** Download ZIP:  
+https://github.com/scrubhubaldawaranestablishment-rgb/Scrub-Hub.github.io/archive/refs/heads/cursor/python-bot-script-9399.zip
+
+Extract to `C:\Users\elmep\Downloads\MT5_Trading_Bot`, then double-click `setup.bat`.
+
+---
+
+## Option B — Already have the latest files
+
+Double-click **`setup.bat`** or **`INSTALL.bat`** in CMD:
+
+```cmd
+cd C:\Users\elmep\Downloads\MT5_Trading_Bot
+setup.bat
+```
+
 You are on **Windows CMD**. Do **not** use Linux commands like `export` or `BOT_TEST_CYCLES=5 python3 bot.py`.
 
 ## 1. Setup (one time)
