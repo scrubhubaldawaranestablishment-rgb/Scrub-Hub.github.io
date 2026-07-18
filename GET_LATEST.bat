@@ -12,6 +12,18 @@ set BRANCH=cursor/python-bot-script-9399
 
 cd /d C:\Users\elmep\Downloads
 
+REM Remove nested clone if user cloned inside existing folder
+if exist "%TARGET%\MT5_Trading_Bot\bot.py" (
+  echo Found nested clone - fixing folder structure...
+  rmdir /S /Q "%TARGET%_old" 2>nul
+  move "%TARGET%" "%TARGET%_old" >nul
+  move "%TARGET%_old\MT5_Trading_Bot" "%TARGET%" >nul
+  rmdir /S /Q "%TARGET%_old" 2>nul
+  cd /d "%TARGET%"
+  call setup.bat
+  exit /b 0
+)
+
 if exist "%TARGET%\.env" (
   echo Backing up your .env file...
   copy /Y "%TARGET%\.env" "%TEMP%\mt5_bot_env_backup.env" >nul

@@ -34,6 +34,16 @@ def is_placeholder(value: str) -> bool:
     return any(m in lower for m in markers)
 
 
+def validate_base44(api_key: str) -> tuple[bool, str]:
+    if not api_key:
+        return False, "BASE44_API_KEY is empty"
+    if is_placeholder(api_key):
+        return False, "BASE44_API_KEY still has placeholder text"
+    if len(api_key) < 16:
+        return False, "BASE44_API_KEY looks too short"
+    return True, ""
+
+
 def validate_discord_url(url: str) -> tuple[bool, str]:
     if not url:
         return False, "DISCORD_WEBHOOK_URL is empty"

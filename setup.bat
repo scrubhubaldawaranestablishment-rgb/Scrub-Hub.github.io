@@ -55,9 +55,10 @@ if %errorlevel% neq 0 (
 echo.
 echo Setup complete.
 echo.
+echo IMPORTANT: Run check_config.bat to verify your .env file.
+echo.
 echo Next steps:
-echo   run_test.bat              - simulation test (5 cycles)
-echo   run_dashboard_test.bat    - push trades to Base44 dashboard
+echo   check_config.bat          - verify folder + .env credentials
 echo   test_notifications.bat    - test Discord + Telegram
 echo   run_bot.bat               - run bot continuously
 echo.

@@ -7,7 +7,11 @@ import logging
 import requests
 
 from trading_bot.config import BotConfig
-from trading_bot.credentials import validate_discord_url, validate_telegram
+from trading_bot.credentials import (
+    validate_base44,
+    validate_discord_url,
+    validate_telegram,
+)
 from trading_bot.models import Signal, TradeRecord
 
 logger = logging.getLogger(__name__)
@@ -48,6 +52,9 @@ class Notifier:
 
     def diagnose(self) -> list[str]:
         issues: list[str] = []
+        ok, msg = validate_base44(self.config.base44_api_key)
+        if not ok:
+            issues.append(f"Base44: {msg}")
         ok, msg = validate_discord_url(self.config.discord_webhook_url)
         if self.discord_enabled and not ok:
             issues.append(f"Discord: {msg}")
